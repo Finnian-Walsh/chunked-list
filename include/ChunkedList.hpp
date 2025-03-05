@@ -571,7 +571,7 @@ end(const ChunkedList<T, ChunkSize> &chunkedList) noexcept;
 #undef DEBUG_LINE
 #undef DEBUG_EXECUTE
 
-#include "../src/ChunkedList.tpp"
-#include "../src/ChunkedListChunk.tpp"
-#include "../src/ChunkedListIterator.tpp"
-#include "../src/ChunkedListUtility.tpp"
+#include "internal/ChunkedList.tpp"
+#include "internal/ChunkedListChunk.tpp"
+#include "internal/ChunkedListIterator.tpp"
+#include "internal/ChunkedListUtility.tpp"

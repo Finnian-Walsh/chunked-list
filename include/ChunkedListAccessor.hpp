@@ -16,4 +16,4 @@ class ChunkedListAccessor final : public ChunkedList<T, ChunkSize> {
     Chunk *getBack();
 };
 
-#include "../src/ChunkedListAccessor.tpp"
+#include "internal/ChunkedListAccessor.tpp"

@@ -70,4 +70,4 @@ namespace chunked_list_utility {
   }
 }
 
-#include "../src/ChunkedListUtility.tpp"
+#include "internal/ChunkedListUtility.tpp"

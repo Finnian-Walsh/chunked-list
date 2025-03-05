@@ -58,4 +58,4 @@ class chunked_list final : ChunkedList<T, ChunkSize> {
     friend std::ostream &operator<<(std::ostream &os, chunked_list &chunkedList);
 };
 
-#include "../src/ChunkedListSnake.tpp"
+#include "internal/ChunkedListSnake.tpp"
