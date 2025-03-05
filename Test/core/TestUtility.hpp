@@ -1,6 +1,8 @@
 #pragma once
 
-#include <ChunkedList.hpp>
+#include "ChunkedList.hpp"
+#include "ChunkedListAccessor.hpp"
+
 #include <unistd.h>
 #include <random>
 
@@ -77,24 +79,6 @@ namespace TestUtility {
   void callFunction(const char *functionName, void (*functionPtr)());
 
   void performTask(const char *taskName, int logLevel = 10);
-
-  template<typename T, size_t ChunkSize>
-  class ChunkedListAccessor final : ChunkedList<T, ChunkSize> {
-    using DerivedChunkedList = ChunkedList<T, ChunkSize>;
-
-    public:
-      size_t getChunkCount() {
-        return this->chunkCount;
-      }
-
-      typename DerivedChunkedList::Chunk *getFront() {
-        return this->front;
-      }
-
-      typename DerivedChunkedList::Chunk *getBack() {
-        return this->back;
-      }
-  };
 
   namespace Tests {
     using DefaultT = int;
