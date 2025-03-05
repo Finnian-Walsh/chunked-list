@@ -21,6 +21,9 @@ class ChunkedList {
   protected:
     static_assert(ChunkSize > 0, "Chunk Size must be greater than 0");
 
+    template<typename OutputStream>
+    using DeduceStringType = decltype(std::declval<OutputStream>().str());
+
     size_t chunkCount{1};
 
     class Chunk {
@@ -510,17 +513,14 @@ class ChunkedList {
     /**
      * @brief Concatenates the elements of the ChunkedList
      * @tparam OutputStream The ostream to use for inserting elements
-     * @tparam StringType The type of string which will be returned by 
      * @tparam SeparatorType The type of string used to store the delimiter
      * @param delimiter The divider between each element
      * @return Each element of the container concatenated into 1 string
      */
     template<
       typename OutputStream = std::ostringstream,
-      typename BaseOutputStream = std::ostream,
-      typename StringType = std::string,
       typename SeparatorType = std::string>
-    StringType concat(SeparatorType delimiter = ", ");
+    auto concat(SeparatorType delimiter = ", ") -> DeduceStringType<OutputStream>;
 };
 
 /**

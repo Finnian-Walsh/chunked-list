@@ -9,7 +9,7 @@
 using namespace TestUtility;
 
 int main() {
-  constexpr size_t pushes = 1000;
+  constexpr size_t pushes = 1'000'000;
 
   callFunction("ChunkedList<int> push time test", [] {
     ChunkedList<int, pushes> testList;

@@ -21,7 +21,7 @@
         "command": "cmake",
         "args": [
             "--build",
-            "build"
+            "Test/build"
         ],
         "group": {
             "kind": "build",

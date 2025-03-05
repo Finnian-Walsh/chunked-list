@@ -141,7 +141,10 @@ void Tests::Insertion() {
            std::string("ostream insertion ran incorrectly\nGot: ") += os.str())
 }
 
-template<template<typename, size_t> typename ChunkedListType, SortType SortingAlgorithm, size_t ChunkSize = Tests::DefaultChunkSize>
+template<
+  template<typename, size_t> typename ChunkedListType,
+SortType SortingAlgorithm,
+size_t ChunkSize = Tests::DefaultChunkSize>
 void Tests::Sorting() {
   performTask("List creation");
   ChunkedListType<DefaultT, ChunkSize> list;
@@ -278,6 +281,12 @@ template<template <typename, size_t> typename ChunkedListType, size_t ChunkSize>
 void Tests::ConcatenationAndIndexing() {
   using ListType = ChunkedListType<DefaultT, ChunkSize>;
   ListType chunkedList;
+
+  performTask("Concatenating"); {
+    const std::string result = chunkedList.concat("\b12u3981u283");
+
+    THROW_IF(!result.empty(), "Concatenation failed; expected \"\" but got \"" + result + '\"');
+  }
 
   performTask("Pushing");
   for (int i = 0; i < 10; ++i)
