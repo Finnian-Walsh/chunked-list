@@ -141,17 +141,17 @@ void Tests::Insertion() {
            std::string("ostream insertion ran incorrectly\nGot: ") += os.str())
 }
 
-template<SortType SortingAlgorithm, template<typename, size_t> typename ChunkedListType>
+template<template<typename, size_t> typename ChunkedListType, SortType SortingAlgorithm, size_t ChunkSize = Tests::DefaultChunkSize>
 void Tests::Sorting() {
   performTask("List creation");
-  ChunkedListType<DefaultT, DefaultChunkSize> list;
+  ChunkedListType<DefaultT, ChunkSize> list;
 
   performTask("Random Number Generator creation");
   RandomNumberGenerator rng;
 
   performTask("Pushing or using the RNG");
   for (int i{}; i < 100; ++i) {
-    list.push(rng(1, 100));
+    list.push(rng(-1'000'000'000, 1'000'000'000));
   }
 
   performTask("Sorting");

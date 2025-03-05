@@ -5,7 +5,7 @@
 #include <random>
 
 #define BEGIN std::cout << "Starting tests..." << std::endl;
-#define SUCCESS std::cout << "All " << testNumber << " tests have been ran.\n" << std::endl; return EXIT_SUCCESS;
+#define SUCCESS std::cout << "All " << testNumber << " tests have been ran." << std::endl; return EXIT_SUCCESS;
 #define THROW_IF(condition, str) if (condition) throw std::runtime_error(str);
 
 #ifndef CHUNKED_LIST_TYPE
@@ -106,7 +106,7 @@ namespace TestUtility {
     template<template <typename, size_t> typename ChunkedListType, size_t ChunkSize>
     void Insertion();
 
-    template<SortType SortingAlgorithm, template<typename, size_t> typename ChunkedListType>
+    template<template<typename, size_t> typename ChunkedListType, SortType SortingAlgorithm, size_t ChunkSize>
     void Sorting();
 
     template<template <typename, size_t> typename ChunkedListType, size_t ChunkSize>
