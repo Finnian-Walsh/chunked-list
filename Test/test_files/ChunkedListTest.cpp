@@ -44,20 +44,50 @@ int main() {
   });
 
   callFunction("Sorting", [] {
-    testData.setSource("Bubble Sorting");
-    Sorting<BubbleSort, ChunkedList>();
+    testData.setSource("Bubble Sorting 1");
+    Sorting<ChunkedList, BubbleSort, 1>();
 
-    testData.setSource("Selection Sorting");
-    Sorting<SelectionSort, ChunkedList>();
+    testData.setSource("Bubble Sorting 2");
+    Sorting<ChunkedList, BubbleSort, 7>();
 
-    testData.setSource("Insertion Sorting");
-    Sorting<InsertionSort, ChunkedList>();
+    testData.setSource("Bubble Sorting 3");
+    Sorting<ChunkedList, BubbleSort, 1000>();
 
-    testData.setSource("Quick Sorting");
-    Sorting<QuickSort, ChunkedList>();
+    testData.setSource("Selection Sorting 1");
+    Sorting<ChunkedList, SelectionSort, 1>();
 
-    testData.setSource("Heap Sorting");
-    Sorting<HeapSort, ChunkedList>();
+    testData.setSource("Selection Sorting 2");
+    Sorting<ChunkedList, SelectionSort, 7>();
+
+    testData.setSource("Selection Sorting 3");
+    Sorting<ChunkedList, SelectionSort, 1000>();
+
+    testData.setSource("Insertion Sorting 1");
+    Sorting<ChunkedList, InsertionSort, 1>();
+
+    testData.setSource("Insertion Sorting 2");
+    Sorting<ChunkedList, InsertionSort, 7>();
+
+    testData.setSource("Insertion Sorting 3");
+    Sorting<ChunkedList, InsertionSort, 1000>();
+
+    testData.setSource("Quick Sorting 1");
+    Sorting<ChunkedList, QuickSort, 1>();
+
+    testData.setSource("Quick Sorting 2");
+    Sorting<ChunkedList, QuickSort, 1>();
+
+    testData.setSource("Quick Sorting 3");
+    Sorting<ChunkedList, QuickSort, 1>();
+
+    testData.setSource("Heap Sorting 1");
+    Sorting<ChunkedList, HeapSort, 1>();
+
+    testData.setSource("Heap Sorting 2");
+    Sorting<ChunkedList, HeapSort, 7>();
+
+    testData.setSource("Heap Sorting 3");
+    Sorting<ChunkedList, HeapSort, 1000>();
   });
 
   callFunction("Iterators", [] {
