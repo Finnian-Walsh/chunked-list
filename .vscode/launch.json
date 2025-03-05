@@ -3,22 +3,11 @@
   "configurations": [
       {
           "name": "Test Executable",
-          "type": "cppdbg",
+          "type": "node",
           "request": "launch",
           "program": "${workspaceFolder}/Test/build/vscode",
           "args": [],
-          "stopAtEntry": false,
           "cwd": "${workspaceFolder}",
-          "environment": [],
-          "externalConsole": false,
-          "MIMode": "gdb",
-          "setupCommands": [
-              {
-                  "description": "Enable pretty-printing for gdb",
-                  "ignoreFailures": true,
-                  "text": "-enable-pretty-printing"
-              }
-          ],
           "preLaunchTask": "Pre-launch Tasks"
       }
   ]
