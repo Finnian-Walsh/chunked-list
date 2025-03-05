@@ -38,13 +38,12 @@ namespace chunked_list_utility {
   template<typename ChunkedListT, typename T>
   concept is_generic_chunk_iterator = template_of<ChunkedListT::template GenericChunkIterator, T>;
 
-  template<typename BaseOutputStream, typename OutputStream, typename T>
-  concept can_insert = (std::is_base_of_v<BaseOutputStream, OutputStream>
-                        || std::is_same_v<BaseOutputStream, OutputStream>)
-                       && requires(OutputStream os, T obj)
-                       {
-                         { os << obj } -> std::convertible_to<BaseOutputStream &>;
-                       };
+  template<typename OutputStream, typename T>
+  concept can_insert = requires(OutputStream os, T obj)
+  {
+    { os << obj };
+    std::is_base_of_v<std::remove_reference_t<decltype(os << obj)>, OutputStream>;
+  };
 
   /**
    * @brief Calls the given sort function on the chunked list
@@ -64,7 +63,7 @@ namespace chunked_list_utility {
 
     template<typename Compare, typename T, size_t ChunkSize>
     void quick_sort(typename ChunkedList<T, ChunkSize>::Iterator start,
-                   typename ChunkedList<T, ChunkSize>::Iterator end);
+                    typename ChunkedList<T, ChunkSize>::Iterator end);
 
     template<typename Compare, typename T, size_t ChunkSize>
     void heap_sort(ChunkedList<T, ChunkSize> &chunkedList);

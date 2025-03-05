@@ -227,21 +227,22 @@ std::ostream &operator<<(std::ostream &os, ChunkedList<T, ChunkSize> &chunkedLis
 }
 
 template<typename T, size_t ChunkSize>
-template<typename OutputStream, typename BaseOutputStream, typename StringType, typename DelimiterType>
-StringType ChunkedList<T, ChunkSize>::concat(const DelimiterType delimiter) {
-  static_assert(chunked_list_utility::can_insert<BaseOutputStream, OutputStream, StringType>,
-                "OutputStream cannot handle StringType");
-  static_assert(chunked_list_utility::can_insert<BaseOutputStream, OutputStream, StringType>,
-                "OutputStream cannot handle SeparatorType");
+template<typename OutputStream, typename DelimiterType>
+auto ChunkedList<T, ChunkSize>::concat(const DelimiterType delimiter) -> decltype(std::declval<OutputStream>().str()) {
+  using StringType = DeduceStringType<OutputStream>;
+
+  static_assert(chunked_list_utility::can_insert<OutputStream, T>, "OutputStream cannot handle StringType");
+  static_assert(chunked_list_utility::can_insert<OutputStream, DelimiterType>,
+                "OutputStream cannot handle DelimiterType");
+
+  if (empty()) {
+    DEBUG_LOG("Empty ChunkedList" << std::endl)
+    return StringType{};
+  }
 
   OutputStream stream;
 
   Iterator it = begin(), lastIt = end() - 1;
-
-  if (it == lastIt) {
-    DEBUG_LOG("Empty ChunkedList" << std::endl)
-    return StringType{};
-  }
 
   for (; it != lastIt; ++it) {
     stream << *it << delimiter;
