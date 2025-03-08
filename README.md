@@ -62,7 +62,7 @@ chunked_list::ChunkedList<T, ChunkSize>::~ChunkedList() {
 ### Iteration
 
 To iterate over a **ChunkedList**, **Iterators** should be used - range-based for-loops are supported. Index based
-for-loops should not be used, since each subscript operation performs a O(n/k) search, iterating through each **Chunk**
+for-loops should not be used, since each subscript operation performs a O(n) search, iterating through each **Chunk**
 until the correct value is found.
 
 ```cpp
