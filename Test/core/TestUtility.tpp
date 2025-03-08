@@ -143,8 +143,8 @@ void Tests::Insertion() {
 
 template<
   template<typename, size_t> typename ChunkedListType,
-SortType SortingAlgorithm,
-size_t ChunkSize = Tests::DefaultChunkSize>
+  SortType SortingAlgorithm,
+  size_t ChunkSize = Tests::DefaultChunkSize>
 void Tests::Sorting() {
   performTask("List creation");
   ChunkedListType<DefaultT, ChunkSize> list;

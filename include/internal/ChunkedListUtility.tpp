@@ -5,23 +5,8 @@
 
 #include "internal/ChunkedListUtility.hpp"
 
-using namespace chunked_list_utility;
-
-template<typename Compare, SortType Sort = QuickSort, typename T, size_t ChunkSize>
-void chunked_list_utility::sort(ChunkedList<T, ChunkSize> &chunkedList) {
-  using namespace sort_functions;
-
-  switch (Sort) {
-    case BubbleSort: return bubble_sort<Compare>(chunkedList);
-    case SelectionSort: return selection_sort<Compare>(chunkedList);
-    case InsertionSort: return insertion_sort<Compare>(chunkedList);
-    case QuickSort: return quick_sort<Compare, T, ChunkSize>(chunkedList.begin(), chunkedList.end());
-    case HeapSort: return heap_sort<Compare>(chunkedList);
-  }
-}
-
 template<typename Compare, typename T, size_t ChunkSize>
-void sort_functions::bubble_sort(ChunkedList<T, ChunkSize> &chunkedList) {
+void chunked_list::utility::sort_functions::bubble_sort(ChunkedList<T, ChunkSize> &chunkedList) {
   if (1 >= chunkedList.size()) return;
 
   Compare compare;
@@ -41,7 +26,7 @@ void sort_functions::bubble_sort(ChunkedList<T, ChunkSize> &chunkedList) {
 }
 
 template<typename Compare, typename T, size_t ChunkSize>
-void sort_functions::selection_sort(ChunkedList<T, ChunkSize> &chunkedList) {
+void chunked_list::utility::sort_functions::selection_sort(ChunkedList<T, ChunkSize> &chunkedList) {
   if (1 >= chunkedList.size()) return;
 
   Compare compare;
@@ -67,7 +52,7 @@ void sort_functions::selection_sort(ChunkedList<T, ChunkSize> &chunkedList) {
 }
 
 template<typename Compare, typename T, size_t ChunkSize>
-void sort_functions::insertion_sort(ChunkedList<T, ChunkSize> &chunkedList) {
+void chunked_list::utility::sort_functions::insertion_sort(ChunkedList<T, ChunkSize> &chunkedList) {
   if (chunkedList.size() <= 1) return;
 
   Compare compare;
@@ -93,7 +78,7 @@ void sort_functions::insertion_sort(ChunkedList<T, ChunkSize> &chunkedList) {
 }
 
 template<typename Compare, typename T, size_t ChunkSize>
-void sort_functions::quick_sort(typename ChunkedList<T, ChunkSize>::Iterator start,
+void chunked_list::utility::sort_functions::quick_sort(typename ChunkedList<T, ChunkSize>::Iterator start,
                               typename ChunkedList<T, ChunkSize>::Iterator end) {
   if (start == end || std::next(start) == end) return;
 
@@ -130,7 +115,7 @@ void sort_functions::quick_sort(typename ChunkedList<T, ChunkSize>::Iterator sta
 }
 
 template<typename Compare, typename T, size_t ChunkSize>
-void sort_functions::heap_sort(ChunkedList<T, ChunkSize> &chunkedList) {
+void chunked_list::utility::sort_functions::heap_sort(ChunkedList<T, ChunkSize> &chunkedList) {
   if (1 >= chunkedList.size()) return;
 
   std::priority_queue<T, std::vector<T>, Compare> heap{};

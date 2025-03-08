@@ -6,6 +6,9 @@
 #include <unistd.h>
 #include <random>
 
+using namespace chunked_list;
+using namespace utility;
+
 #define BEGIN std::cout << "Starting tests..." << std::endl;
 #define SUCCESS std::cout << "All " << testNumber << " tests have been ran." << std::endl; return EXIT_SUCCESS;
 #define THROW_IF(condition, str) if (condition) throw std::runtime_error(str);

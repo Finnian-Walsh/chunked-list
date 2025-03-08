@@ -44,6 +44,8 @@ int main() {
   });
 
   callFunction("Sorting", [] {
+    using namespace chunked_list::utility;
+
     testData.setSource("Bubble Sorting 1");
     Sorting<ChunkedList, BubbleSort, 1>();
 

@@ -2,18 +2,20 @@
 
 #include "ChunkedList.hpp"
 
-template<typename T, size_t ChunkSize>
-class ChunkedListAccessor final : public ChunkedList<T, ChunkSize> {
-  using DerivedChunkedList = ChunkedList<T, ChunkSize>;
+namespace chunked_list {
+  template<typename T, size_t ChunkSize>
+  class ChunkedListAccessor final : public ChunkedList<T, ChunkSize> {
+    using DerivedChunkedList = ChunkedList<T, ChunkSize>;
 
-  public:
-    using Chunk = typename DerivedChunkedList::Chunk;
+    public:
+      using Chunk = typename DerivedChunkedList::Chunk;
 
-    size_t getChunkCount();
+      size_t getChunkCount();
 
-    Chunk *getFront();
+      Chunk *getFront();
 
-    Chunk *getBack();
-};
+      Chunk *getBack();
+  };
+}
 
-#include "../src/ChunkedListAccessor.tpp"
+#include "internal/ChunkedListAccessor.tpp"
