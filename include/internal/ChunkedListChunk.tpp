@@ -1,33 +1,29 @@
 #pragma once
 
-#include "internal/ChunkedListMacros.hpp"
+#include "ChunkedList.hpp"
 
 template<typename T, size_t ChunkSize>
-ChunkedList<T, ChunkSize>::Chunk::Chunk(Chunk *nextChunk, Chunk *prevChunk)
+chunked_list::ChunkedList<T, ChunkSize>::Chunk::Chunk(Chunk *nextChunk, Chunk *prevChunk)
   : nextChunk(nextChunk), prevChunk(prevChunk) {
 }
 
 template<typename T, size_t ChunkSize>
-ChunkedList<T, ChunkSize>::Chunk::Chunk(const T *array, const size_t size, Chunk *nextChunk,
+chunked_list::ChunkedList<T, ChunkSize>::Chunk::Chunk(const T *array, const size_t size, Chunk *nextChunk,
                                         Chunk *prevChunk) : nextIndex(size),
                                                             nextChunk(nextChunk),
                                                             prevChunk(prevChunk) {
-  DEBUG_LOG("range = " << size << ": ")
   for (int index = 0; index < size; ++index) {
     data[index] = array[index];
-    DEBUG_LOG(array[index] << ", ")
   }
-
-  DEBUG_LINE(true)
 }
 
 template<typename T, size_t ChunkSize>
-ChunkedList<T, ChunkSize>::Chunk::Chunk(T value) : data{std::move(value)}, nextIndex{1} {
+chunked_list::ChunkedList<T, ChunkSize>::Chunk::Chunk(T value) : data{std::move(value)}, nextIndex{1} {
 }
 
 template<typename T, size_t ChunkSize>
-typename ChunkedList<T, ChunkSize>::Chunk &
-ChunkedList<T, ChunkSize>::Chunk::operator+(const size_t offset) {
+typename chunked_list::ChunkedList<T, ChunkSize>::Chunk &
+chunked_list::ChunkedList<T, ChunkSize>::Chunk::operator+(const size_t offset) {
   Chunk *chunk{this};
 
   for (size_t i = 0; i < offset; ++i)
@@ -37,8 +33,8 @@ ChunkedList<T, ChunkSize>::Chunk::operator+(const size_t offset) {
 }
 
 template<typename T, size_t ChunkSize>
-typename ChunkedList<T, ChunkSize>::Chunk &
-ChunkedList<T, ChunkSize>::Chunk::operator-(const size_t offset) {
+typename chunked_list::ChunkedList<T, ChunkSize>::Chunk &
+chunked_list::ChunkedList<T, ChunkSize>::Chunk::operator-(const size_t offset) {
   Chunk *chunk{this};
 
   for (size_t i = 0; i < offset; ++i)
@@ -48,34 +44,34 @@ ChunkedList<T, ChunkSize>::Chunk::operator-(const size_t offset) {
 }
 
 template<typename T, size_t ChunkSize>
-bool ChunkedList<T, ChunkSize>::Chunk::empty() const {
+bool chunked_list::ChunkedList<T, ChunkSize>::Chunk::empty() const {
   return nextIndex == 0;
 }
 
 template<typename T, size_t ChunkSize>
-T &ChunkedList<T, ChunkSize>::Chunk::operator[](size_t index) {
+T &chunked_list::ChunkedList<T, ChunkSize>::Chunk::operator[](size_t index) {
   return data[index];
 }
 
 template<typename T, size_t ChunkSize>
-const T &ChunkedList<T, ChunkSize>::Chunk::operator[](size_t index) const {
+const T &chunked_list::ChunkedList<T, ChunkSize>::Chunk::operator[](size_t index) const {
   return data[index];
 }
 
 template<typename T, size_t ChunkSize>
-bool ChunkedList<T, ChunkSize>::Chunk::operator==(const Chunk &other) const {
+bool chunked_list::ChunkedList<T, ChunkSize>::Chunk::operator==(const Chunk &other) const {
   return this == &other;
 }
 
 template<typename T, size_t ChunkSize>
-bool ChunkedList<T, ChunkSize>::Chunk::operator!=(const Chunk &other) const {
+bool chunked_list::ChunkedList<T, ChunkSize>::Chunk::operator!=(const Chunk &other) const {
   return this == &other;
 }
 
 template<typename T, size_t ChunkSize>
-void ChunkedList<T, ChunkSize>::Chunk::debugData(std::string &str) const {
+void chunked_list::ChunkedList<T, ChunkSize>::Chunk::debugData(std::string &str) const {
   std::ostringstream oss{};
-  oss << "ChunkedList<" << typeid(T).name() << ", " << std::to_string(ChunkSize) << ">::Chunk(nextIndex=" << nextIndex
+  oss << "chunked_list::ChunkedList<" << typeid(T).name() << ", " << std::to_string(ChunkSize) << ">::Chunk(nextIndex=" << nextIndex
   << ", nextChunk=" << nextChunk <<
   ", prevChunk = " << prevChunk;
 

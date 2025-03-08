@@ -7,12 +7,11 @@
     - [Iteration](#iteration)
     - [Sorting](#sorting)
     - [Private Member Accessing](#private-member-accessing)
-5. [Debugging](#debugging)
-6. [Installation](#installation)
-7. [Examples](#examples)
+5. [Installation](#installation)
+6. [Examples](#examples)
     - [Basic Usage](#basic-usage)
     - [String Concatenation](#string-concatenation)
-8. [Snake Case Variant](#snake-case-variant)
+7. [Snake Case Variant](#snake-case-variant)
 
 # Chunked List
 
@@ -49,7 +48,7 @@ When a **ChunkedList** instance is deallocated, every **Chunk** gets deallocated
 
 ```cpp
 template<typename T, size_t ChunkSize>
-ChunkedList<T, ChunkSize>::~ChunkedList() {
+chunked_list::ChunkedList<T, ChunkSize>::~ChunkedList() {
   do {
     Chunk *newBack = back->prevChunk;
     delete back;
@@ -74,10 +73,10 @@ for (T value : chunkedList) {
 
 ```cpp
 template<typename T, size_t ChunkSize>
-ChunkedList<T, ChunkSize>::Iterator begin(ChunkedList<T, ChunkSize> &chunkedList);
+chunked_list::ChunkedList<T, ChunkSize>::Iterator begin(chunked_list::ChunkedList<T, ChunkSize> &chunkedList);
 
 template<typename T, size_t ChunkSize>
-ChunkedList<T, ChunkSize>::Iterator end(ChunkedList<T, ChunkSize> &chunkedList);
+chunked_list::ChunkedList<T, ChunkSize>::Iterator end(chunked_list::ChunkedList<T, ChunkSize> &chunkedList);
 ```
 
 ### Sorting
@@ -86,11 +85,11 @@ The **ChunkedList** data structure comes with a built-in sort function, allowing
 class and an algorithm of your choice with template parameters.
 
 ```cpp
-template<typename Compare = std::less<T>, SortEnum SortType = HeapSort>
+template<typename Compare = std::less<T>, utility::SortType = QuickSort>
 void sort();
 ```
 
-By default, the sort function uses `std::less<T>` to compare types and `HeapSort` as the Sorting algorithm
+By default, the sort function uses `std::less<T>` to compare types and `QuickSort` as the Sorting algorithm.
 
 ### Private member accessing
 
@@ -102,32 +101,24 @@ A **ChunkedListAccessor** class provides safe access to the private members:
 
 ```cpp
 template<typename T, size_t ChunkSize>
-class ChunkedListAccessor final : ChunkedList<T, ChunkSize>;
+class chunked_list::ChunkedListAccessor final : chunked_list::ChunkedList<T, ChunkSize>;
 ```
 
 Usage:
 
 ```cpp
-auto &accessor = static_cast<ChunkedListAccessor<T, ChunkSize>
+using namespace chunked_list;
+
+auto &accessor = static_cast<ChunkedListAccessor<T, ChunkSize>>(list);
 
 auto front = accessor.getFront();
 auto back = accessor.getBack();
 size_t chunkCount = accessor.getChunkCount();
 ```
 
-## Debugging
-
-Enable debugging mode by defining:
-
-```cpp
-#define CHUNKED_LIST_DEBUGGING
-```
-
-This will log **ChunkedList** operations to the console.
-
 ## Installation
 
-Clone the repository or add it as a submodule to your project.
+Simply clone the repository or add it as a submodule to your project.
 
 ```bash
 git submodule add https://github.com/Finnian-Walsh/ChunkedList.git <path>
@@ -147,6 +138,8 @@ Then, add the `include` directory to your include directories.
 #include <iostream>
 
 #include "ChunkedList.hpp"
+
+using chunked_list::ChunkedList;
 
 int main() {
   ChunkedList<int> list{1, 2, 3, 4, 5};
@@ -175,6 +168,8 @@ Output:
 
 #include "ChunkedList.hpp"
 
+using chunked_list::ChunkedList;
+
 int main() {
   ChunkedList<std::string> list{"Hello", "world!"};
   
@@ -196,17 +191,19 @@ For projects where `snake_case` naming conventions are used, include:
 #include "ChunkedListSnake.hpp"
 ```
 
-This implements the **chunked_list** class, with identical functionality to the **ChunkedList**.
+This implements the **Chunked_List** class, with identical functionality to the **ChunkedList**.
 
 ### Example
 
 ```cpp
-#include "ChunkedListSnake.hpp"
-
 #include <random>
 
+#include "ChunkedListSnake.hpp"
+
+using chunked_list::Chunked_List;
+
 int main() {
-  chunked_list<int, 32> obj{};
+  Chunked_List<int, 32> obj{};
   
   std::mt19937 gen{std::random_device{}};
   std::uniform_int_distribution<int> dist{1, 100};
