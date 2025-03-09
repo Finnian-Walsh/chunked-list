@@ -523,51 +523,52 @@ namespace chunked_list {
         typename SeparatorType = std::string>
       auto concat(SeparatorType delimiter = ", ") -> DeduceStringType<OutputStream>;
   };
+
+
+  /**
+   * @brief Returns an Iterator to the first element in the given ChunkedList
+   * @tparam T The type stored in the container
+   * @tparam ChunkSize The size of each Chunk within the container
+   * @param chunkedList A reference to the container object
+   * @returns An Iterator referencing the first element in the container
+   */
+  template<typename T, size_t ChunkSize>
+  typename ChunkedList<T, ChunkSize>::Iterator
+  begin(ChunkedList<T, ChunkSize> &chunkedList) noexcept;
+
+  /**
+   * @brief Returns a ConstIterator to the first element in the given ChunkedList
+   * @tparam T The type stored in the container
+   * @tparam ChunkSize The size of each Chunk within the container
+   * @param chunkedList A const reference to the container object
+   * @returns A ConstIterator referencing the first element in the container
+   */
+  template<typename T, size_t ChunkSize>
+  typename ChunkedList<T, ChunkSize>::ConstIterator
+  begin(const ChunkedList<T, ChunkSize> &chunkedList) noexcept;
+
+  /**
+   * @brief Returns a ConstIterator to the element after the last in the given ChunkedList
+   * @tparam T The type stored in the container
+   * @tparam ChunkSize The size of each Chunk within the container
+   * @param chunkedList A reference to the container object
+   * @returns A ConstIterator referencing the element after the last in the container
+   */
+  template<typename T, size_t ChunkSize>
+  typename ChunkedList<T, ChunkSize>::Iterator
+  end(ChunkedList<T, ChunkSize> &chunkedList) noexcept;
+
+  /**
+   * @brief Returns an Iterator to the element after the last in the given ChunkedList
+   * @tparam T The type stored in the container
+   * @tparam ChunkSize The size of each Chunk within the container
+   * @param chunkedList A const reference to the container object
+   * @returns An Iterator referencing the element after the last in the container
+   */
+  template<typename T, size_t ChunkSize>
+  typename ChunkedList<T, ChunkSize>::ConstIterator
+  end(const ChunkedList<T, ChunkSize> &chunkedList) noexcept;
 }
-
-/**
- * @brief Returns an Iterator to the first element in the given ChunkedList
- * @tparam T The type stored in the container
- * @tparam ChunkSize The size of each Chunk within the container
- * @param chunkedList A reference to the container object
- * @returns An Iterator referencing the first element in the container
- */
-template<typename T, size_t ChunkSize>
-typename chunked_list::ChunkedList<T, ChunkSize>::Iterator
-begin(chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
-
-/**
- * @brief Returns a ConstIterator to the first element in the given ChunkedList
- * @tparam T The type stored in the container
- * @tparam ChunkSize The size of each Chunk within the container
- * @param chunkedList A const reference to the container object
- * @returns A ConstIterator referencing the first element in the container
- */
-template<typename T, size_t ChunkSize>
-typename chunked_list::ChunkedList<T, ChunkSize>::ConstIterator
-begin(const chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
-
-/**
- * @brief Returns a ConstIterator to the element after the last in the given ChunkedList
- * @tparam T The type stored in the container
- * @tparam ChunkSize The size of each Chunk within the container
- * @param chunkedList A reference to the container object
- * @returns A ConstIterator referencing the element after the last in the container
- */
-template<typename T, size_t ChunkSize>
-typename chunked_list::ChunkedList<T, ChunkSize>::Iterator
-end(chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
-
-/**
- * @brief Returns an Iterator to the element after the last in the given ChunkedList
- * @tparam T The type stored in the container
- * @tparam ChunkSize The size of each Chunk within the container
- * @param chunkedList A const reference to the container object
- * @returns An Iterator referencing the element after the last in the container
- */
-template<typename T, size_t ChunkSize>
-typename chunked_list::ChunkedList<T, ChunkSize>::ConstIterator
-end(const chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
 
 #undef DEBUG_LOG
 #undef DEBUG_LINE
