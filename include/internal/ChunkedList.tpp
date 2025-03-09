@@ -248,26 +248,22 @@ namespace chunked_list {
   }
 
   template<typename T, size_t ChunkSize>
-  typename ChunkedList<T, ChunkSize>::Iterator begin(
-    ChunkedList<T, ChunkSize> &chunkedList) noexcept {
+  typename ChunkedList<T, ChunkSize>::Iterator begin(ChunkedList<T, ChunkSize> &chunkedList) noexcept {
     return chunkedList.begin();
   }
 
   template<typename T, size_t ChunkSize>
-  typename ChunkedList<T, ChunkSize>::ConstIterator begin(
-    const ChunkedList<T, ChunkSize> &chunkedList) noexcept {
+  typename ChunkedList<T, ChunkSize>::ConstIterator begin(const ChunkedList<T, ChunkSize> &chunkedList) noexcept {
     return chunkedList.begin();
   }
 
   template<typename T, size_t ChunkSize>
-  typename ChunkedList<T, ChunkSize>::Iterator end(
-    ChunkedList<T, ChunkSize> &chunkedList) noexcept {
+  typename ChunkedList<T, ChunkSize>::Iterator end(ChunkedList<T, ChunkSize> &chunkedList) noexcept {
     return chunkedList.end();
   }
 
   template<typename T, size_t ChunkSize>
-  typename ChunkedList<T, ChunkSize>::ConstIterator end(
-    const ChunkedList<T, ChunkSize> &chunkedList) noexcept {
+  typename ChunkedList<T, ChunkSize>::ConstIterator end(const ChunkedList<T, ChunkSize> &chunkedList) noexcept {
     return chunkedList.end();
   }
 }
