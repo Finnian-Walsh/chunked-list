@@ -48,7 +48,7 @@ When a **ChunkedList** instance is deallocated, every **Chunk** gets deallocated
 
 ```cpp
 template<typename T, size_t ChunkSize>
-chunked_list::ChunkedList<T, ChunkSize>::~ChunkedList() {
+ChunkedList<T, ChunkSize>::~ChunkedList() {
   do {
     Chunk *newBack = back->prevChunk;
     delete back;
@@ -73,10 +73,10 @@ for (T value : chunkedList) {
 
 ```cpp
 template<typename T, size_t ChunkSize>
-chunked_list::ChunkedList<T, ChunkSize>::Iterator begin(chunked_list::ChunkedList<T, ChunkSize> &chunkedList);
+ChunkedList<T, ChunkSize>::Iterator begin(ChunkedList<T, ChunkSize> &chunkedList);
 
 template<typename T, size_t ChunkSize>
-chunked_list::ChunkedList<T, ChunkSize>::Iterator end(chunked_list::ChunkedList<T, ChunkSize> &chunkedList);
+ChunkedList<T, ChunkSize>::Iterator end(ChunkedList<T, ChunkSize> &chunkedList);
 ```
 
 ### Sorting
@@ -101,7 +101,7 @@ A **ChunkedListAccessor** class provides safe access to the private members:
 
 ```cpp
 template<typename T, size_t ChunkSize>
-class chunked_list::ChunkedListAccessor final : chunked_list::ChunkedList<T, ChunkSize>;
+class ChunkedListAccessor final : ChunkedList<T, ChunkSize>;
 ```
 
 Usage:
