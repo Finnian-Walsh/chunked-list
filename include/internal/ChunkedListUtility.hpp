@@ -30,14 +30,11 @@ namespace chunked_list {
         static constexpr bool value = Impl<T>::value;
     };
 
-    template<template <typename...> class Template, typename T>
-    concept template_of = is_template_of<Template, T>::value;
+    template<typename ChunkedListT, typename T>
+    concept is_generic_iterator = is_template_of<ChunkedListT::template GenericIterator, T>::value;
 
     template<typename ChunkedListT, typename T>
-    concept is_generic_iterator = template_of<ChunkedListT::template GenericIterator, T>;
-
-    template<typename ChunkedListT, typename T>
-    concept is_generic_chunk_iterator = template_of<ChunkedListT::template GenericChunkIterator, T>;
+    concept is_generic_chunk_iterator = is_template_of<ChunkedListT::template GenericChunkIterator, T>::value;
 
     template<typename OutputStream, typename T>
     concept can_insert = requires(OutputStream os, T obj)
