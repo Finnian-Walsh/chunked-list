@@ -16,6 +16,9 @@ namespace chunked_list {
       HeapSort,
     };
 
+    template<typename OutputStream>
+    using DeduceStreamStringType = decltype(std::declval<OutputStream>().str());
+
     template<template <typename...> typename TemplateT, typename T>
     class is_template_of {
       template<typename>
@@ -30,11 +33,17 @@ namespace chunked_list {
         static constexpr bool value = Impl<T>::value;
     };
 
-    template<typename ChunkedListT, typename T>
-    concept is_generic_iterator = is_template_of<ChunkedListT::template GenericIterator, T>::value;
+    template<typename ChunkedListT, typename IteratorT>
+    concept is_iterator = is_template_of<ChunkedListT::template GenericIterator, IteratorT>::value;
 
-    template<typename ChunkedListT, typename T>
-    concept is_generic_chunk_iterator = is_template_of<ChunkedListT::template GenericChunkIterator, T>::value;
+    template<typename ChunkedListT, typename ChunkIteratorT>
+    concept is_chunk_iterator = is_template_of<
+      ChunkedListT::template GenericChunkIterator,
+      ChunkIteratorT
+    >::value;
+
+    template<typename ChunkedListT, typename SliceT>
+    concept is_slice = is_template_of<ChunkedListT::template GenericSlice, SliceT>::value;
 
     template<typename OutputStream, typename T>
     concept can_insert = requires(OutputStream os, T obj)
@@ -63,4 +72,4 @@ namespace chunked_list {
   }
 }
 
-#include "internal/ChunkedListUtility.tpp"
+#include "ChunkedListUtility.tpp"

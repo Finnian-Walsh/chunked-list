@@ -3,9 +3,9 @@
 #include "ChunkedList.hpp"
 
 namespace chunked_list {
-  template<typename T, size_t ChunkSize = 32>
-  class Chunked_List final : ChunkedList<T, ChunkSize> {
-    using derived_chunked_list = ChunkedList<T, ChunkSize>;
+  template<typename T, size_t Chunk_Size = 32>
+  class Chunked_List final : ChunkedList<T, Chunk_Size> {
+    using derived_chunked_list = ChunkedList<T, Chunk_Size>;
 
     public:
       using derived_chunked_list::ChunkedList;
@@ -17,6 +17,10 @@ namespace chunked_list {
       using iterator = typename derived_chunked_list::Iterator;
 
       using const_iterator = typename derived_chunked_list::ConstIterator;
+
+      using slice = typename derived_chunked_list::Slice;
+
+      using const_slice = typename derived_chunked_list::ConstSlice;
 
       using derived_chunked_list::operator[];
 
@@ -31,6 +35,12 @@ namespace chunked_list {
       chunk_iterator end_chunk();
 
       const_chunk_iterator end_chunk() const;
+
+      template<typename Iterator_Type>
+      slice get_slice(Iterator_Type begin, Iterator_Type end);
+
+      template<typename Iterator_Type>
+      const_slice get_slice(Iterator_Type begin, Iterator_Type end) const;
 
       using derived_chunked_list::push;
 
@@ -56,8 +66,24 @@ namespace chunked_list {
       using derived_chunked_list::concat;
 
       template<typename, size_t, bool>
-      friend std::ostream &operator<<(std::ostream &os, Chunked_List &chunkedList);
+      friend std::ostream &operator<<(std::ostream &os, Chunked_List &chunked_list);
   };
 }
+
+template<typename T, size_t Chunk_Size>
+typename chunked_list::Chunked_List<T, Chunk_Size>::iterator
+begin(chunked_list::Chunked_List<T, Chunk_Size> &chunked_list);
+
+template<typename T, size_t Chunk_Size>
+typename chunked_list::Chunked_List<T, Chunk_Size>::const_iterator
+begin(const chunked_list::Chunked_List<T, Chunk_Size> &chunked_list);
+
+template<typename T, size_t Chunk_Size>
+typename chunked_list::Chunked_List<T, Chunk_Size>::iterator
+end(chunked_list::Chunked_List<T, Chunk_Size> &chunked_list);
+
+template<typename T, size_t Chunk_Size>
+typename chunked_list::Chunked_List<T, Chunk_Size>::const_iterator
+end(const chunked_list::Chunked_List<T, Chunk_Size> &chunked_list);
 
 #include "internal/ChunkedListSnake.tpp"

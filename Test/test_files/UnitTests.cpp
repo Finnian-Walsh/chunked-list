@@ -9,9 +9,8 @@
 using namespace TestUtility;
 
 int main() {
-  constexpr size_t pushes = 1'000'000;
-
-  callFunction("ChunkedList<int> push time test", [] {
+  constexpr size_t pushes = 1'000'000; {
+    std::cout << "ChunkedList<int> push time test:" << std::endl;
     ChunkedList<int, pushes> testList;
 
     std::cout << "starting..." << std::endl;
@@ -27,10 +26,9 @@ int main() {
     const auto duration_ns = std::chrono::duration_cast<std::chrono::duration<double, std::nano> >(end - start);
 
     std::cout << "Total time taken to push " << pushes << " integers: " << duration_s.count() << " seconds\n";
-    std::cout << "Average time to push 1 integer: " << duration_ns.count() / pushes << " nanoseconds" << std::endl;
-  });
-
-  callFunction("std::list<int> push time test", [] {
+    std::cout << "Average time to push 1 integer: " << duration_ns.count() / pushes << " nanoseconds\n" << std::endl;
+  } {
+    std::cout << "std::list<int> push time test" << std::endl;
     std::list<int> testList;
 
     std::cout << "starting..." << std::endl;
@@ -46,10 +44,9 @@ int main() {
     const auto duration_ns = std::chrono::duration_cast<std::chrono::duration<double, std::nano> >(end - start);
 
     std::cout << "Total time taken to push " << pushes << " integers: " << duration_s.count() << " seconds\n";
-    std::cout << "Average time to push 1 integer: " << duration_ns.count() / pushes << " nanoseconds" << std::endl;
-  });
-
-  callFunction("std::vector<int> push time test", [] {
+    std::cout << "Average time to push 1 integer: " << duration_ns.count() / pushes << " nanoseconds\n" << std::endl;
+  } {
+    std::cout << "std::vector<int> push time test" << std::endl;
     std::vector<int> testList;
 
     std::cout << "starting..." << std::endl;
@@ -67,8 +64,8 @@ int main() {
     const auto duration_ns = std::chrono::duration_cast<std::chrono::duration<double, std::nano> >(end - start);
 
     std::cout << "Total time taken to push " << pushes << " integers: " << duration_s.count() << " seconds\n";
-    std::cout << "Average time to push 1 integer: " << duration_ns.count() / pushes << " nanoseconds" << std::endl;
-  });
+    std::cout << "Average time to push 1 integer: " << duration_ns.count() / pushes << " nanoseconds\n" << std::endl;
+  }
 
   return 0;
 }

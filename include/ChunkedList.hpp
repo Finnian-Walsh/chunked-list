@@ -22,9 +22,6 @@ namespace chunked_list {
     protected:
       static_assert(ChunkSize > 0, "Chunk Size must be greater than 0");
 
-      template<typename OutputStream>
-      using DeduceStringType = decltype(std::declval<OutputStream>().str());
-
       size_t chunkCount{1};
 
       class Chunk {
@@ -66,7 +63,7 @@ namespace chunked_list {
 
           bool operator!=(const Chunk &other) const;
 
-          void debugData(std::string &str) const;
+          void getData(std::string &str) const;
       };
 
       /**
@@ -84,6 +81,10 @@ namespace chunked_list {
        */
       void pushChunk(Chunk *chunk);
 
+      /**
+       * @brief A generic chunk iterator for the chunk iterator and const chunk iterator
+       * @tparam ChunkT The type of Chunk that the iterator will reference (const or non-const)
+       */
       template<typename ChunkT>
       class GenericChunkIterator {
         public:
@@ -205,6 +206,11 @@ namespace chunked_list {
           ChunkT *chunk{nullptr};
       };
 
+      /**
+       * @brief A generic iterator for the iterator and const iterator
+       * @tparam ChunkT The type of Chunk that the iterator will reference (const or non-const)
+       * @tparam ValueT The type of value that the iterator will reference (const or non-const)
+       */
       template<typename ChunkT, typename ValueT>
       class GenericIterator {
         using ChunkIteratorT = GenericChunkIterator<ChunkT>;
@@ -345,6 +351,48 @@ namespace chunked_list {
           size_t index{0};
       };
 
+      /**
+       * @brief A generic slice for referencing parts of the chunked list
+       * @tparam ChunkT The type of Chunk that the iterator will reference (const or non-const)
+       * @tparam ValueT The type of value that the iterator will reference (const or non-const)
+       */
+      template<typename ChunkT, typename ValueT>
+      class GenericSlice {
+        using ChunkIteratorT = GenericChunkIterator<ChunkT>;
+        using IteratorT = GenericIterator<ChunkT, ValueT>;
+
+        size_t firstIndex;
+        size_t lastIndex;
+
+        ChunkT *firstChunk{nullptr};
+        ChunkT *lastChunk{nullptr};
+
+        public:
+          /**
+           * @brief Constructs a slice of a ChunkedList from the start iterator to the end iterator (inclusive-exclusive)
+           * @param start The iterator for the start of the slice (inclusive)
+           * @param end The iterator for the end of the slice (exclusive)
+           */
+          GenericSlice(IteratorT start, IteratorT end);
+
+          /**
+           * @brief Constructs a slice of a ChunkedList from the start chunk iterator to the end chunk iterator (inclusive-exclusive)
+           * @param start The chunk iterator for the start of the slice (inclusive)
+           * @param end The chunk iterator for the end of the slice (exclusive)
+           */
+          GenericSlice(ChunkIteratorT start, ChunkIteratorT end);
+
+          ~GenericSlice() = default;
+
+          ValueT &operator[](size_t index);
+
+          const ValueT &operator[](size_t index) const;
+
+          // void expandLeft(size_t distance);
+
+          // void expandRight(size_t distance);
+      };
+
     public:
       /**
        * @brief The default constructor for ChunkedList, allocating a single Chunk for the front and back
@@ -383,14 +431,24 @@ namespace chunked_list {
       using ConstIterator = GenericIterator<const Chunk, const T>;
 
       /**
-       * @brief Direct ChunkedList indexing, of O(n/k) search complexity, where n is the index and k is the ChunkSize
+       * @brief The mutable variation of the slice class
+       */
+      using Slice = GenericSlice<Chunk, T>;
+
+      /**
+       * @brief The immutable variation of the slice class
+       */
+      using ConstSlice = GenericSlice<const Chunk, const T>;
+
+      /**
+       * @brief Direct ChunkedList indexing, of O(n) search complexity, where n is the index and k is the ChunkSize
        * @param index The index of the element in the ChunkedList
        * @return A reference to the value at the index
        */
       T &operator[](size_t index);
 
       /**
-        * @brief Direct const ChunkedList indexing, of O(n/k) search complexity, where n is the index and k is the ChunkSize
+        * @brief Direct const ChunkedList indexing, of O(n) search complexity, where n is the index and k is the ChunkSize
         * @param index The index of the element in the ChunkedList
         * @return A const reference to the value at the index
         */
@@ -443,6 +501,40 @@ namespace chunked_list {
        * @returns A ChunkIterator not referencing any Chunk
        */
       ConstChunkIterator endChunk() const;
+
+      /**
+       * @brief Returns a mutable portion of the ChunkedList from the start to end
+       * @param start The index for the start of the slice (inclusive)
+       * @param end The index for the end of the slice (exclusive)
+       * @return An in-place slice which references the start index to the end index (inclusive-exclusive)
+       */
+      // Slice slice(size_t start, size_t end);
+
+      /**
+        * @brief Returns a const portion of the ChunkedList from the start to end
+        * @param start The index for the start of the slice (inclusive)
+        * @param end The index for the end of the slice (exclusive)
+        * @return An in-place constant slice which references the start index to the end index (inclusive-exclusive)
+        */
+      // ConstSlice slice(size_t start, size_t end) const;
+
+      /**
+       * @brief Returns a portion of the ChunkedList from the start iterator to the end iterator
+       * @param start The iterator for the start of the slice (inclusive)
+       * @param end The iterator for the end of the slice (exclusive)
+       * @return An in-place slice which references the start iterator to the end iterator (inclusive-exclusive)
+       */
+      template<typename IteratorT>
+      Slice slice(IteratorT start, IteratorT end);
+
+      /**
+       * @brief Returns a const portion of the ChunkedList from the start iterator to the end iterator
+       * @param start The iterator for the start of the slice (inclusive)
+       * @param end The iterator for the end of the slice (exclusive)
+       * @return An in-place slice which references the start iterator to the end iterator (inclusive-exclusive)
+       */
+      template<typename IteratorT>
+      ConstSlice slice(IteratorT start, IteratorT end) const;
 
       /**
        * @brief Pushes an element to the front of the ChunkedList
@@ -521,54 +613,54 @@ namespace chunked_list {
       template<
         typename OutputStream = std::ostringstream,
         typename SeparatorType = std::string>
-      auto concat(SeparatorType delimiter = ", ") -> DeduceStringType<OutputStream>;
+      auto concat(SeparatorType delimiter = ", ") -> utility::DeduceStreamStringType<OutputStream>;
   };
-
-
-  /**
-   * @brief Returns an Iterator to the first element in the given ChunkedList
-   * @tparam T The type stored in the container
-   * @tparam ChunkSize The size of each Chunk within the container
-   * @param chunkedList A reference to the container object
-   * @returns An Iterator referencing the first element in the container
-   */
-  template<typename T, size_t ChunkSize>
-  typename ChunkedList<T, ChunkSize>::Iterator
-  begin(ChunkedList<T, ChunkSize> &chunkedList) noexcept;
-
-  /**
-   * @brief Returns a ConstIterator to the first element in the given ChunkedList
-   * @tparam T The type stored in the container
-   * @tparam ChunkSize The size of each Chunk within the container
-   * @param chunkedList A const reference to the container object
-   * @returns A ConstIterator referencing the first element in the container
-   */
-  template<typename T, size_t ChunkSize>
-  typename ChunkedList<T, ChunkSize>::ConstIterator
-  begin(const ChunkedList<T, ChunkSize> &chunkedList) noexcept;
-
-  /**
-   * @brief Returns a ConstIterator to the element after the last in the given ChunkedList
-   * @tparam T The type stored in the container
-   * @tparam ChunkSize The size of each Chunk within the container
-   * @param chunkedList A reference to the container object
-   * @returns A ConstIterator referencing the element after the last in the container
-   */
-  template<typename T, size_t ChunkSize>
-  typename ChunkedList<T, ChunkSize>::Iterator
-  end(ChunkedList<T, ChunkSize> &chunkedList) noexcept;
-
-  /**
-   * @brief Returns an Iterator to the element after the last in the given ChunkedList
-   * @tparam T The type stored in the container
-   * @tparam ChunkSize The size of each Chunk within the container
-   * @param chunkedList A const reference to the container object
-   * @returns An Iterator referencing the element after the last in the container
-   */
-  template<typename T, size_t ChunkSize>
-  typename ChunkedList<T, ChunkSize>::ConstIterator
-  end(const ChunkedList<T, ChunkSize> &chunkedList) noexcept;
 }
+
+/**
+ * @brief Returns an Iterator to the first element in the given ChunkedList
+ * @tparam T The type stored in the container
+ * @tparam ChunkSize The size of each Chunk within the container
+ * @param chunkedList A reference to the container object
+ * @returns An Iterator referencing the first element in the container
+ */
+template<typename T, size_t ChunkSize>
+typename chunked_list::ChunkedList<T, ChunkSize>::Iterator
+begin(chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
+
+/**
+ * @brief Returns a ConstIterator to the first element in the given ChunkedList
+ * @tparam T The type stored in the container
+ * @tparam ChunkSize The size of each Chunk within the container
+ * @param chunkedList A const reference to the container object
+ * @returns A ConstIterator referencing the first element in the container
+ */
+template<typename T, size_t ChunkSize>
+typename chunked_list::ChunkedList<T, ChunkSize>::ConstIterator
+begin(const chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
+
+/**
+ * @brief Returns a ConstIterator to the element after the last in the given ChunkedList
+ * @tparam T The type stored in the container
+ * @tparam ChunkSize The size of each Chunk within the container
+ * @param chunkedList A reference to the container object
+ * @returns A ConstIterator referencing the element after the last in the container
+ */
+template<typename T, size_t ChunkSize>
+typename chunked_list::ChunkedList<T, ChunkSize>::Iterator
+end(chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
+
+/**
+ * @brief Returns an Iterator to the element after the last in the given ChunkedList
+ * @tparam T The type stored in the container
+ * @tparam ChunkSize The size of each Chunk within the container
+ * @param chunkedList A const reference to the container object
+ * @returns An Iterator referencing the element after the last in the container
+ */
+template<typename T, size_t ChunkSize>
+typename chunked_list::ChunkedList<T, ChunkSize>::ConstIterator
+end(const chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
+
 
 #undef DEBUG_LOG
 #undef DEBUG_LINE
@@ -577,4 +669,5 @@ namespace chunked_list {
 #include "internal/ChunkedList.tpp"
 #include "internal/ChunkedListChunk.tpp"
 #include "internal/ChunkedListIterator.tpp"
+#include "internal/ChunkedListSlice.tpp"
 #include "internal/ChunkedListUtility.tpp"

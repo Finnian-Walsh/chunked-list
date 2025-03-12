@@ -52,5 +52,6 @@
     "xtr1common": "cpp",
     "list": "cpp",
     "vector": "cpp"
-  }
+  },
+  "cmake.sourceDirectory": "/home/Finnian/CLionProjects/chunked-list/Test"
 }

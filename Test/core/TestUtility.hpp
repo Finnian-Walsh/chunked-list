@@ -79,34 +79,85 @@ namespace TestUtility {
       bool taskIsNull() const;
   } testData;
 
-  void callFunction(const char *functionName, void (*functionPtr)());
+  template<
+    template <template <typename, size_t> typename, size_t, typename...> typename Functor,
+    template <typename, size_t> typename ChunkedListType,
+    size_t ChunkSize,
+    size_t FinalChunkSize,
+    typename... Args
+  >
+  void callFunction(const char *functionName);
 
   void performTask(const char *taskName, int logLevel = 10);
 
   namespace Tests {
+    template<template <template <typename, size_t> typename, size_t, typename...> typename>
+    class Test {
+      template<
+        template <typename, size_t> typename ChunkedListType,
+        size_t ChunkSize,
+        size_t FinalChunkSize,
+        typename... Args
+      >
+      void secondaryCall(size_t testNumber) const;
+
+      public:
+        template<
+          template <typename, size_t> typename ChunkedListType,
+          size_t ChunkSize,
+          size_t FinalChunkSize,
+          typename... Args
+        >
+        void call() const;
+    };
+
     using DefaultT = int;
     constexpr size_t DefaultChunkSize = 32;
 
-    template<template <typename, size_t> typename ChunkedListType, size_t ChunkSize>
-    void FrontAndBack();
+    template<template <typename, size_t> typename, size_t>
+    class FrontAndBack {
+      public:
+        void operator()();
+    };
 
-    template<template <typename, size_t> typename ChunkedListType, size_t ChunkSize>
-    void Insertion();
+    template<template <typename, size_t> typename, size_t>
+    class Insertion {
+      public:
+        void operator()();
+    };
 
-    template<template<typename, size_t> typename ChunkedListType, SortType SortingAlgorithm, size_t ChunkSize>
-    void Sorting();
+    template<template<typename, size_t> typename, size_t>
+    class Sorting {
+      template<SortType>
+      void sort() const;
 
-    template<template <typename, size_t> typename ChunkedListType, size_t ChunkSize>
-    void Iterators();
+      public:
+        void operator()() const;
+    };
 
-    template<template <typename, size_t> typename ChunkedListType, size_t ChunkSize>
-    void PushingAndPopping();
+    template<template <typename, size_t> typename, size_t>
+    class SlicesAndIterators {
+      public:
+        void operator()() const;
+    };
 
-    template<template <typename, size_t> typename ChunkedListType, size_t ChunkSize>
-    void EqualityAndInequality();
+    template<template <typename, size_t> typename, size_t>
+    class PushingAndPopping {
+      public:
+        void operator()() const;
+    };
 
-    template<template <typename, size_t> typename ChunkedListType, size_t ChunkSize>
-    void ConcatenationAndIndexing();
+    template<template <typename, size_t> typename, size_t>
+    class EqualityAndInequality {
+      public:
+        void operator()() const;
+    };
+
+    template<template <typename, size_t> typename, size_t>
+    class ConcatenationAndIndexing {
+      public:
+        void operator()() const;
+    };
   }
 }
 

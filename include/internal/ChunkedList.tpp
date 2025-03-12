@@ -2,8 +2,8 @@
 
 #include <iostream>
 
-#include "ChunkedList.hpp"
-#include "internal/ChunkedListUtility.hpp"
+#include "../ChunkedList.hpp"
+#include "ChunkedListUtility.hpp"
 
 namespace chunked_list {
   template<typename T, size_t ChunkSize>
@@ -53,6 +53,19 @@ namespace chunked_list {
       back = newBack;
     } while (back);
   }
+
+  // template<typename T, size_t ChunkSize>
+  // typename ChunkedList<T, ChunkSize>::Slice ChunkedList<T, ChunkSize>::slice(const size_t start, const size_t end) {
+  //   Iterator beginIt = operator[](start);
+  //   return Slice{beginIt, beginIt + (end - (1 + start))};
+  // }
+  //
+  // template<typename T, size_t ChunkSize>
+  // typename ChunkedList<T, ChunkSize>::ConstSlice
+  // ChunkedList<T, ChunkSize>::slice(const size_t start, const size_t end) const {
+  //   ConstIterator beginIt = operator[](start);
+  //   return Slice{beginIt, beginIt + (end - (1 + start))};
+  // }
 
   template<typename T, size_t ChunkSize>
   T &ChunkedList<T, ChunkSize>::operator[](const size_t index) {
@@ -223,8 +236,8 @@ namespace chunked_list {
   template<typename T, size_t ChunkSize>
   template<typename OutputStream, typename DelimiterType>
   auto ChunkedList<T,
-    ChunkSize>::concat(const DelimiterType delimiter) -> decltype(std::declval<OutputStream>().str()) {
-    using StringType = DeduceStringType<OutputStream>;
+    ChunkSize>::concat(const DelimiterType delimiter) -> utility::DeduceStreamStringType<OutputStream> {
+    using StringType = utility::DeduceStreamStringType<OutputStream>;
 
     static_assert(utility::can_insert<OutputStream, T>, "OutputStream cannot handle StringType");
     static_assert(utility::can_insert<OutputStream, DelimiterType>,
@@ -246,24 +259,24 @@ namespace chunked_list {
 
     return stream.str();
   }
+}
 
-  template<typename T, size_t ChunkSize>
-  typename ChunkedList<T, ChunkSize>::Iterator begin(ChunkedList<T, ChunkSize> &chunkedList) noexcept {
-    return chunkedList.begin();
-  }
+template<typename T, size_t ChunkSize>
+typename chunked_list::ChunkedList<T, ChunkSize>::Iterator begin(chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept {
+  return chunkedList.begin();
+}
 
-  template<typename T, size_t ChunkSize>
-  typename ChunkedList<T, ChunkSize>::ConstIterator begin(const ChunkedList<T, ChunkSize> &chunkedList) noexcept {
-    return chunkedList.begin();
-  }
+template<typename T, size_t ChunkSize>
+typename chunked_list::ChunkedList<T, ChunkSize>::ConstIterator begin(const chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept {
+  return chunkedList.begin();
+}
 
-  template<typename T, size_t ChunkSize>
-  typename ChunkedList<T, ChunkSize>::Iterator end(ChunkedList<T, ChunkSize> &chunkedList) noexcept {
-    return chunkedList.end();
-  }
+template<typename T, size_t ChunkSize>
+typename chunked_list::ChunkedList<T, ChunkSize>::Iterator end(chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept {
+  return chunkedList.end();
+}
 
-  template<typename T, size_t ChunkSize>
-  typename ChunkedList<T, ChunkSize>::ConstIterator end(const ChunkedList<T, ChunkSize> &chunkedList) noexcept {
-    return chunkedList.end();
-  }
+template<typename T, size_t ChunkSize>
+typename chunked_list::ChunkedList<T, ChunkSize>::ConstIterator end(const chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept {
+  return chunkedList.end();
 }
