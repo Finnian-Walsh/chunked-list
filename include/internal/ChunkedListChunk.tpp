@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ChunkedList.hpp"
+#include "../ChunkedList.hpp"
 
 namespace chunked_list {
   template<typename T, size_t ChunkSize>
@@ -10,8 +10,8 @@ namespace chunked_list {
 
   template<typename T, size_t ChunkSize>
   ChunkedList<T, ChunkSize>::Chunk::Chunk(const T *array, const size_t size, Chunk *nextChunk,
-                                                        Chunk *prevChunk) : nextIndex(size), nextChunk(nextChunk),
-                                                                            prevChunk(prevChunk) {
+                                          Chunk *prevChunk) : nextIndex(size), nextChunk(nextChunk),
+                                                              prevChunk(prevChunk) {
     for (int index = 0; index < size; ++index) {
       data[index] = array[index];
     }
@@ -69,10 +69,10 @@ namespace chunked_list {
   }
 
   template<typename T, size_t ChunkSize>
-  void ChunkedList<T, ChunkSize>::Chunk::debugData(std::string &str) const {
+  void ChunkedList<T, ChunkSize>::Chunk::getData(std::string &str) const {
     std::ostringstream oss{};
-    oss << "ChunkedList<" << typeid(T).name() << ", " << std::to_string(ChunkSize) <<
-    ">::Chunk(nextIndex=" << nextIndex
+    oss << "ChunkedList<" << typeid(T).name() << ", " <<
+    std::to_string(ChunkSize) << ">::Chunk(nextIndex=" << nextIndex
     << ", nextChunk=" << nextChunk <<
     ", prevChunk = " << prevChunk;
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ChunkedListAccessor.hpp"
+#include "../ChunkedListAccessor.hpp"
 
 namespace chunked_list {
   template<typename T, size_t ChunkSize>

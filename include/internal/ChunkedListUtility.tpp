@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <queue>
 
-#include "internal/ChunkedListUtility.hpp"
+#include "ChunkedListUtility.hpp"
 
 namespace chunked_list::utility::sort_functions {
   template<typename Compare, typename T, size_t ChunkSize>

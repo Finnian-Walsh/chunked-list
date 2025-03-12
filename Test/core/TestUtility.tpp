@@ -66,13 +66,20 @@ inline bool TestData::taskIsNull() const {
   return nullTask;
 }
 
-inline void TestUtility::callFunction(const char *functionName, void (*functionPtr)()) {
+template<
+  template <template <typename, size_t> typename, size_t, typename...> typename Functor,
+  template <typename, size_t> typename ChunkedListType,
+  size_t ChunkSize = 1,
+  size_t FinalChunkSize = 2,
+  typename... Args
+>
+void TestUtility::callFunction(const char *functionName) {
   ++testNumber;
   std::cout << "Test " << testNumber << ": " << functionName << '\n';
 
   try {
     testData.newTest(functionName);
-    functionPtr();
+    Tests::Test<Functor>{}.template call<ChunkedListType, ChunkSize, FinalChunkSize, Args...>();
   } catch (const std::exception &e) {
     throw std::runtime_error(
       std::string{"Call to "}.operator+=(functionName).operator+=(" failed\nSource: ").operator+=(
@@ -91,8 +98,36 @@ inline void TestUtility::performTask(const char *taskName, const int logLevel) {
   }
 }
 
+template<template <template <typename, size_t> typename, size_t, typename...> typename Functor>
+template<template <typename, size_t> typename ChunkedListType, size_t ChunkSize, size_t FinalChunkSize, typename...
+  Args>
+void Tests::Test<Functor>::secondaryCall(const size_t testNumber) const {
+  testData.setSource(std::move(std::string("Test ") += std::to_string(testNumber)));
+  Functor<ChunkedListType, ChunkSize, Args...>{}();
+
+  if constexpr (FinalChunkSize > ChunkSize) {
+    secondaryCall<ChunkedListType, ChunkSize + 1, FinalChunkSize, Args...>(testNumber + 1);
+  }
+}
+
+template<template <template <typename, size_t> typename, size_t, typename...> typename Functor>
+template<
+  template <typename, size_t> typename ChunkedListType,
+  size_t ChunkSize,
+  size_t FinalChunkSize,
+  typename... Args
+>
+void Tests::Test<Functor>::call() const {
+  testData.setSource("Test 1");
+  Functor<ChunkedListType, ChunkSize, Args...>{}();
+
+  if constexpr (FinalChunkSize > ChunkSize) {
+    secondaryCall<ChunkedListType, ChunkSize + 1, FinalChunkSize, Args...>(1);
+  }
+}
+
 template<template <typename, size_t> typename ChunkedListType, size_t ChunkSize>
-void Tests::FrontAndBack() {
+void Tests::FrontAndBack<ChunkedListType, ChunkSize>::operator()() {
   performTask("Creating chunked list with initializer list");
 
   using ListType = ChunkedListType<DefaultT, ChunkSize>;
@@ -116,7 +151,7 @@ void Tests::FrontAndBack() {
 }
 
 template<template <typename, size_t> typename ChunkedListType, size_t ChunkSize>
-void Tests::Insertion() {
+void Tests::Insertion<ChunkedListType, ChunkSize>::operator()() {
   using ListType = ChunkedListType<DefaultT, ChunkSize>;
 
   ListType chunkedList{5, 10, 15};
@@ -143,9 +178,37 @@ void Tests::Insertion() {
 
 template<
   template<typename, size_t> typename ChunkedListType,
-  SortType SortingAlgorithm,
-  size_t ChunkSize = Tests::DefaultChunkSize>
-void Tests::Sorting() {
+  size_t ChunkSize
+>
+void Tests::Sorting<ChunkedListType, ChunkSize>::operator()() const {
+  const std::string initialSource = testData.getSource();
+
+#define EXTEND_SOURCE(extension) testData.setSource(std::move(std::string{initialSource} += extension));
+
+  EXTEND_SOURCE(" bubble sort")
+  sort<BubbleSort>();
+
+  EXTEND_SOURCE(" selection sort")
+  sort<SelectionSort>();
+
+  EXTEND_SOURCE(" insertion sort")
+  sort<InsertionSort>();
+
+  EXTEND_SOURCE(" quick sort")
+  sort<QuickSort>();
+
+  EXTEND_SOURCE(" heap sort")
+  sort<HeapSort>();
+
+#undef EXTEND_SOURCE
+}
+
+template<
+  template<typename, size_t> typename ChunkedListType,
+  size_t ChunkSize
+>
+template<SortType SortingAlgorithm>
+void Tests::Sorting<ChunkedListType, ChunkSize>::sort() const {
   performTask("List creation");
   ChunkedListType<DefaultT, ChunkSize> list;
 
@@ -184,7 +247,7 @@ void Tests::Sorting() {
 }
 
 template<template <typename, size_t> typename ChunkedListType, size_t ChunkSize>
-void Tests::PushingAndPopping() {
+void Tests::PushingAndPopping<ChunkedListType, ChunkSize>::operator()() const {
   using ListType = ChunkedListType<DefaultT, ChunkSize>;
   ListType chunkedList{};
 
@@ -210,12 +273,17 @@ void Tests::PushingAndPopping() {
 }
 
 template<template <typename, size_t> typename ChunkedListType, size_t ChunkSize>
-void Tests::Iterators() {
+void Tests::SlicesAndIterators<ChunkedListType, ChunkSize>::operator()() const {
   using ListType = ChunkedListType<DefaultT, ChunkSize>;
 
   performTask("List creation");
   ListType chunkedList{1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
   const ListType &constListRef = chunkedList; {
+    auto slice = chunkedList.VARIANT_CODE(slice, get_slice)(begin(chunkedList) + 3, begin(chunkedList) + 7);
+    THROW_IF(slice[0] != 4, "First item in slice is not equal to 4")
+    THROW_IF(slice[1] != 5, "Second item in slice is not equal to 5")
+    THROW_IF(slice[2] != 6, "Third item in slice is not equal to 6")
+  } {
     int total{};
 
     performTask("List iteration (implicit)");
@@ -278,7 +346,7 @@ void Tests::Iterators() {
 }
 
 template<template <typename, size_t> typename ChunkedListType, size_t ChunkSize>
-void Tests::ConcatenationAndIndexing() {
+void Tests::ConcatenationAndIndexing<ChunkedListType, ChunkSize>::operator()() const {
   using ListType = ChunkedListType<DefaultT, ChunkSize>;
   ListType chunkedList;
 
@@ -307,7 +375,7 @@ void Tests::ConcatenationAndIndexing() {
 }
 
 template<template <typename, size_t> typename ChunkedListType, size_t ChunkSize>
-void Tests::EqualityAndInequality() {
+void Tests::EqualityAndInequality<ChunkedListType, ChunkSize>::operator()() const {
   using ListType = ChunkedListType<DefaultT, ChunkSize>;
 
   ListType list1{};
