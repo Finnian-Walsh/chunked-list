@@ -90,6 +90,9 @@ namespace TestUtility {
 
   void performTask(const char *taskName, int logLevel = 10);
 
+  template<std::integral Number>
+  std::string ordinalize(Number n);
+
   namespace Tests {
     template<template <template <typename, size_t> typename, size_t, typename...> typename>
     class Test {

@@ -98,6 +98,24 @@ inline void TestUtility::performTask(const char *taskName, const int logLevel) {
   }
 }
 
+template<std::integral Number>
+std::string TestUtility::ordinalize(Number n) {
+  switch (std::string str = std::move(std::to_string(n)); str.back()) {
+    case '1':
+      str += "st";
+      return str;
+    case '2':
+      str += "nd";
+      return str;
+    case '3':
+      str += "rd";
+      return str;
+    default:
+      str += "th";
+      return str;
+  }
+}
+
 template<template <template <typename, size_t> typename, size_t, typename...> typename Functor>
 template<template <typename, size_t> typename ChunkedListType, size_t ChunkSize, size_t FinalChunkSize, typename...
   Args>
@@ -279,10 +297,29 @@ void Tests::SlicesAndIterators<ChunkedListType, ChunkSize>::operator()() const {
   performTask("List creation");
   ListType chunkedList{1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
   const ListType &constListRef = chunkedList; {
-    auto slice = chunkedList.VARIANT_CODE(slice, get_slice)(begin(chunkedList) + 3, begin(chunkedList) + 7);
-    THROW_IF(slice[0] != 4, "First item in slice is not equal to 4")
-    THROW_IF(slice[1] != 5, "Second item in slice is not equal to 5")
-    THROW_IF(slice[2] != 6, "Third item in slice is not equal to 6")
+    performTask("Slicing");
+    constexpr size_t START_OFFSET = 3, END_OFFSET = 7;
+    auto slice = chunkedList.VARIANT_CODE(slice, get_slice)
+      (begin(chunkedList) + START_OFFSET, begin(chunkedList) + END_OFFSET);
+
+    for (size_t index = 0; index < END_OFFSET - START_OFFSET; ++index) {
+      const DefaultT expected = START_OFFSET + index + 1;
+      THROW_IF(
+        slice[index] != expected,
+        (ordinalize(index) += " item in slice is not equal to ") += std::to_string(expected)
+      );
+    }
+
+    DefaultT expected = START_OFFSET + 1;
+    for (const int num : slice) {
+      THROW_IF(
+        num != expected,
+        ((std::string{"Expected "} += std::to_string(expected)) += " but got ") += std::to_string(num)
+      );
+      ++expected;
+    }
+
+    THROW_IF(expected != 8, std::string{"Expected 'expected' to be equal to 7, but got "} += std::to_string(expected));
   } {
     int total{};
 
