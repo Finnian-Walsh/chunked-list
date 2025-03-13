@@ -54,6 +54,35 @@ namespace chunked_list {
     return const_cast<GenericSlice *>(this)->operator[](index);
   }
 
+  template<typename T, size_t ChunkSize>
+  template<typename ChunkT, typename ValueT>
+  typename ChunkedList<T, ChunkSize>::template GenericSlice<ChunkT, ValueT>::IteratorT
+  ChunkedList<T, ChunkSize>::GenericSlice<ChunkT, ValueT>::begin() {
+    return IteratorT{firstChunk, firstIndex};
+  }
+
+  template<typename T, size_t ChunkSize>
+  template<typename ChunkT, typename ValueT>
+  typename ChunkedList<T, ChunkSize>::template GenericSlice<ChunkT, ValueT>::ConstIteratorT
+  ChunkedList<T, ChunkSize>::GenericSlice<ChunkT, ValueT>::begin() const {
+    return ConstIteratorT{firstChunk, firstIndex};
+  }
+
+  template<typename T, size_t ChunkSize>
+  template<typename ChunkT, typename ValueT>
+  typename ChunkedList<T, ChunkSize>::template GenericSlice<ChunkT, ValueT>::IteratorT
+  ChunkedList<T, ChunkSize>::GenericSlice<ChunkT, ValueT>::end() {
+    return ++IteratorT{lastChunk, lastIndex};
+  }
+
+  template<typename T, size_t ChunkSize>
+  template<typename ChunkT, typename ValueT>
+  typename ChunkedList<T, ChunkSize>::template GenericSlice<ChunkT, ValueT>::ConstIteratorT
+  ChunkedList<T, ChunkSize>::GenericSlice<ChunkT, ValueT>::end() const {
+    return ++ConstIteratorT{lastChunk, lastIndex};
+  }
+
+
   // template<typename T, size_t ChunkSize>
   // template<typename ChunkT, typename ValueT>
   // void ChunkedList<T, ChunkSize>::GenericSlice<ChunkT, ValueT>::expandLeft(const size_t distance) {

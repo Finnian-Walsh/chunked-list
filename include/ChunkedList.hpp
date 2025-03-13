@@ -360,6 +360,7 @@ namespace chunked_list {
       class GenericSlice {
         using ChunkIteratorT = GenericChunkIterator<ChunkT>;
         using IteratorT = GenericIterator<ChunkT, ValueT>;
+        using ConstIteratorT = GenericIterator<const ChunkT, const ValueT>;
 
         size_t firstIndex;
         size_t lastIndex;
@@ -387,6 +388,14 @@ namespace chunked_list {
           ValueT &operator[](size_t index);
 
           const ValueT &operator[](size_t index) const;
+
+          IteratorT begin();
+
+          ConstIteratorT begin() const;
+
+          IteratorT end();
+
+          ConstIteratorT end() const;
 
           // void expandLeft(size_t distance);
 
