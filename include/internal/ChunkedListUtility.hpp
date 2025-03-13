@@ -22,12 +22,10 @@ namespace chunked_list {
     template<template <typename...> typename TemplateT, typename T>
     class is_template_of {
       template<typename>
-      class Impl : public std::false_type {
-      };
+      class Impl : public std::false_type {};
 
       template<typename... Args>
-      class Impl<TemplateT<Args...> > : public std::true_type {
-      };
+      class Impl<TemplateT<Args...> > : public std::true_type {};
 
       public:
         static constexpr bool value = Impl<T>::value;
@@ -46,8 +44,7 @@ namespace chunked_list {
     concept is_slice = is_template_of<ChunkedListT::template GenericSlice, SliceT>::value;
 
     template<typename OutputStream, typename T>
-    concept can_insert = requires(OutputStream os, T obj)
-    {
+    concept can_insert = requires(OutputStream os, T obj) {
       { os << obj };
       std::is_base_of_v<std::remove_reference_t<decltype(os << obj)>, OutputStream>;
     };
