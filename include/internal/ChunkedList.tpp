@@ -126,6 +126,47 @@ namespace chunked_list {
   }
 
   template<typename T, size_t ChunkSize>
+  typename ChunkedList<T, ChunkSize>::Slice ChunkedList<T, ChunkSize>::slice(size_t startIndex, size_t endIndex) {
+    ChunkIterator chunkIt{front};
+
+    const size_t startChunkIndex = startIndex / ChunkSize;
+
+    for (size_t i = 0; i < startChunkIndex; ++i) {
+      ++chunkIt;
+    }
+
+    Chunk &startChunk = *chunkIt;
+
+    const size_t endChunkIndex = endIndex / ChunkSize;
+
+    for (size_t i = startChunkIndex; i < endChunkIndex; ++i) {
+      ++chunkIt;
+    }
+
+    return Slice{Iterator{startChunk, startIndex % ChunkSize}, Iterator{*chunkIt, endIndex % ChunkSize}};
+  }
+
+  template<typename T, size_t ChunkSize>
+  typename ChunkedList<T, ChunkSize>::ConstSlice
+  ChunkedList<T, ChunkSize>::slice(const size_t startIndex, const size_t endIndex) const {
+    return ConstSlice{const_cast<ChunkedList *>(this)->slice(startIndex, endIndex)};
+  }
+
+  template<typename T, size_t ChunkSize>
+  template<typename StartIteratorT, typename EndIteratorT>
+    requires utility::are_iterators_or_chunk_iterators<ChunkedList<T, ChunkSize>, StartIteratorT, EndIteratorT>
+  typename ChunkedList<T, ChunkSize>::Slice ChunkedList<T, ChunkSize>::slice(StartIteratorT start, EndIteratorT end) {
+    return Slice{start, end};
+  }
+
+  template<typename T, size_t ChunkSize>
+  template<typename StartIteratorT, typename EndIteratorT>
+    requires utility::are_iterators_or_chunk_iterators<ChunkedList<T, ChunkSize>, StartIteratorT, EndIteratorT>
+  typename ChunkedList<T, ChunkSize>::ConstSlice ChunkedList<T, ChunkSize>::slice(StartIteratorT start, EndIteratorT end) const {
+    return ConstSlice{start, end};
+  }
+
+  template<typename T, size_t ChunkSize>
   void ChunkedList<T, ChunkSize>::push(T value) {
     if (back->nextIndex == ChunkSize) {
       pushChunk(new Chunk{std::forward<T>(value)});

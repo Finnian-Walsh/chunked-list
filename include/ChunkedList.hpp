@@ -87,6 +87,8 @@ namespace chunked_list {
        */
       template<typename ChunkT>
       class GenericChunkIterator {
+        ChunkT *chunk{nullptr};
+
         public:
           // stl compatibility
 
@@ -95,6 +97,10 @@ namespace chunked_list {
           using pointer = ChunkT *;
           using reference = ChunkT &;
           using iterator_category = std::bidirectional_iterator_tag;
+
+          template<typename ChunkIteratorT>
+            requires utility::is_chunk_iterator<ChunkedList, ChunkIteratorT>
+          explicit GenericChunkIterator(ChunkIteratorT chunkIterator);
 
           /**
            * @brief The pointer constructor for GenericChunkIterator
@@ -164,18 +170,20 @@ namespace chunked_list {
            * @brief Compares the given object with another for equality
            * @tparam ChunkIteratorT The type of object which will be compared to the given iterator
            * @param other The object which will be compared to the given iterator
-           * @return True if the given object's chunk pointer is equal to the other's, otherwise false
+           * @return Whether the chunk pointer of the given object is equal to the chunk pointer of the other
            */
           template<typename ChunkIteratorT>
+            requires utility::is_chunk_iterator<ChunkedList, ChunkIteratorT>
           bool operator==(ChunkIteratorT other) const;
 
           /**
            * @brief Compares the given object with another for inequality
-           * @tparam ChunkIteratorT The type of object which will be compared to the given iterator
-           * @param other The object which will be compared to the given iterator
-           * @return True if the given object's chunk is unequal to the other's, otherwise false
+           * @tparam ChunkIteratorT The type of object which will be compared against the given iterator
+           * @param other The object which will be compared against the given iterator
+           * @return Whether the chunk pointer of the given object is unequal to the chunk pointer of the other
            */
           template<typename ChunkIteratorT>
+            requires utility::is_chunk_iterator<ChunkedList, ChunkIteratorT>
           bool operator!=(ChunkIteratorT other) const;
 
           /**
@@ -201,9 +209,6 @@ namespace chunked_list {
            * @return A const pointer to the chunk stored within the iterator, of type ChunkT
            */
           const ChunkT *operator->() const;
-
-        private:
-          ChunkT *chunk{nullptr};
       };
 
       /**
@@ -214,6 +219,10 @@ namespace chunked_list {
       template<typename ChunkT, typename ValueT>
       class GenericIterator {
         using ChunkIteratorT = GenericChunkIterator<ChunkT>;
+        using ConstChunkIteratorT = GenericChunkIterator<const ChunkT>;
+
+        ChunkIteratorT chunkIterator{};
+        size_t index{0};
 
         public:
           // stl compatibility
@@ -222,6 +231,10 @@ namespace chunked_list {
           using pointer = ValueT *;
           using reference = ValueT &;
           using iterator_category = std::bidirectional_iterator_tag;
+
+          template<typename IteratorT>
+            requires utility::is_iterator<ChunkedList, IteratorT>
+          explicit GenericIterator(IteratorT iterator);
 
           /**
            * @brief Initialises the GenericIterator with a specified chunk pointer and optional index
@@ -296,18 +309,20 @@ namespace chunked_list {
            * @brief Compares the given object with another for equality
            * @tparam IteratorT The type of object which will be compared to the given iterator
            * @param other The object which will be compared to the given iterator
-           * @return True if the given object's index and chunkIterator are equal to the other's index and chunkIterator
+           * @return Whether the index and chunk iterator of the given object are equal to the index and chunk iterator of the other
            */
           template<typename IteratorT>
+            requires utility::is_iterator<ChunkedList, IteratorT>
           bool operator==(IteratorT other) const;
 
           /**
            * @brief Compares the given object with another for inequality
-           * @tparam IteratorT The type of object which will be compared to the given iterator
-           * @param other The object which will be compared to the given iterator
-           * @return True if the given object's index is unequal to the other's or the given object's chunkIterator is unequal to the other's, otherwise false
+           * @tparam IteratorT The type of object which will be compared against the given iterator
+           * @param other The object which will be compared against the given iterator
+           * @return Whether either the index or chunk iterator of the given object is unequal to the index or chunk iterator of the other
            */
           template<typename IteratorT>
+            requires utility::is_iterator<ChunkedList, IteratorT>
           bool operator!=(IteratorT other) const;
 
           /**
@@ -341,14 +356,28 @@ namespace chunked_list {
           size_t getIndex() const;
 
           /**
-           * @brief A get function, returning the private chunkIterator member
+           * @brief A get function, returning a reference to the stored chunk
+           * @return The chunk stored by the chunk iterator of the given iterator
+           */
+          ChunkT &getChunk();
+
+          /**
+          * @brief A get function, returning a constant reference to the stored chunk
+          * @return The chunk stored by the chunk iterator of the given iterator (const)
+          */
+          const ChunkT &getChunk() const;
+
+          /**
+           * @brief A get function, returning a copy of the private chunkIterator member
            * @return The chunkIterator stored by the given iterator
            */
-          ChunkIteratorT getChunkIterator() const;
+          ChunkIteratorT getChunkIterator();
 
-        private:
-          ChunkIteratorT chunkIterator{};
-          size_t index{0};
+          /**
+           * @brief A get function, returning a constant copy of the private chunkIterator member
+           * @return The chunkIterator stored by the given iterator (const)
+           */
+          ConstChunkIteratorT getChunkIterator() const;
       };
 
       /**
@@ -358,44 +387,60 @@ namespace chunked_list {
        */
       template<typename ChunkT, typename ValueT>
       class GenericSlice {
-        using ChunkIteratorT = GenericChunkIterator<ChunkT>;
-        using IteratorT = GenericIterator<ChunkT, ValueT>;
-        using ConstIteratorT = GenericIterator<const ChunkT, const ValueT>;
+        using ChunkIteratorType = GenericChunkIterator<ChunkT>;
+        using IteratorType = GenericIterator<ChunkT, ValueT>;
+        using ConstIteratorType = GenericIterator<const ChunkT, const ValueT>;
 
-        size_t firstIndex;
-        size_t lastIndex;
-
-        ChunkT *firstChunk{nullptr};
-        ChunkT *lastChunk{nullptr};
+        IteratorType startIterator;
+        IteratorType endIterator;
 
         public:
           /**
-           * @brief Constructs a slice of a ChunkedList from the start iterator to the end iterator (inclusive-exclusive)
+           * @brief Constructs a slice of a ChunkedList from the start iterator to the last iterator (inclusive-exclusive)
            * @param start The iterator for the start of the slice (inclusive)
-           * @param end The iterator for the end of the slice (exclusive)
+           * @param end The iterator for the last of the slice (exclusive)
            */
-          GenericSlice(IteratorT start, IteratorT end);
+          template<typename StartIteratorT, typename EndIteratorT>
+            requires utility::are_iterators<ChunkedList, StartIteratorT, EndIteratorT>
+          GenericSlice(StartIteratorT start, EndIteratorT end);
 
-          /**
-           * @brief Constructs a slice of a ChunkedList from the start chunk iterator to the end chunk iterator (inclusive-exclusive)
-           * @param start The chunk iterator for the start of the slice (inclusive)
-           * @param end The chunk iterator for the end of the slice (exclusive)
-           */
-          GenericSlice(ChunkIteratorT start, ChunkIteratorT end);
+          template<typename StartChunkIteratorT, typename EndChunkIteratorT>
+            requires utility::are_chunk_iterators<ChunkedList, StartChunkIteratorT, EndChunkIteratorT>
+          GenericSlice(StartChunkIteratorT start, EndChunkIteratorT last);
 
           ~GenericSlice() = default;
+
+          /**
+           * @brief Compares the given object with another for equality
+           * @tparam SliceT The type of object which will be compared to the given slice
+           * @param other The object which will be compared to the given slice
+           * @return Whether the iterator of the given object is equal to the iterator of the other object
+           */
+          template<typename SliceT>
+            requires utility::is_slice<ChunkedList, SliceT>
+          bool operator==(SliceT other) const;
+
+          /**
+           * @brief Compares the given object with another for inequality
+           * @tparam SliceT The type of object which will be compared against the given slice
+           * @param other The object which will be compared against the given slice
+           * @return Whether the iterator of the given object is equal to the iterator of the other object
+           */
+          template<typename SliceT>
+            requires utility::is_slice<ChunkedList, SliceT>
+          bool operator!=(SliceT other) const;
 
           ValueT &operator[](size_t index);
 
           const ValueT &operator[](size_t index) const;
 
-          IteratorT begin();
+          IteratorType begin();
 
-          ConstIteratorT begin() const;
+          ConstIteratorType begin() const;
 
-          IteratorT end();
+          IteratorType end();
 
-          ConstIteratorT end() const;
+          ConstIteratorType end() const;
 
           // void expandLeft(size_t distance);
 
@@ -418,6 +463,16 @@ namespace chunked_list {
        * @brief The destructor for ChunkedList, deallocating each chunk starting from the back
        */
       ~ChunkedList();
+
+      /**
+       * @brief Adds the value type to the ChunkedList for type deduction
+       */
+      using value_type = T;
+
+      /**
+       * @brief Adds the chunk size to the ChunkedList as a static member
+       */
+      static constexpr size_t chunk_size = ChunkSize;
 
       /**
       * @brief The non-const ChunkIterator class used to iterate through each Chunk in the ChunkedList
@@ -513,19 +568,19 @@ namespace chunked_list {
 
       /**
        * @brief Returns a mutable portion of the ChunkedList from the start to end
-       * @param start The index for the start of the slice (inclusive)
-       * @param end The index for the end of the slice (exclusive)
+       * @param startIndex The index for the start of the slice (inclusive)
+       * @param endIndex The index for the end of the slice (exclusive)
        * @return An in-place slice which references the start index to the end index (inclusive-exclusive)
        */
-      // Slice slice(size_t start, size_t end);
+      Slice slice(size_t startIndex, size_t endIndex);
 
       /**
         * @brief Returns a const portion of the ChunkedList from the start to end
-        * @param start The index for the start of the slice (inclusive)
-        * @param end The index for the end of the slice (exclusive)
+        * @param startIndex The index for the start of the slice (inclusive)
+        * @param endIndex The index for the last of the slice (exclusive)
         * @return An in-place constant slice which references the start index to the end index (inclusive-exclusive)
         */
-      // ConstSlice slice(size_t start, size_t end) const;
+      ConstSlice slice(size_t startIndex, size_t endIndex) const;
 
       /**
        * @brief Returns a portion of the ChunkedList from the start iterator to the end iterator
@@ -533,8 +588,9 @@ namespace chunked_list {
        * @param end The iterator for the end of the slice (exclusive)
        * @return An in-place slice which references the start iterator to the end iterator (inclusive-exclusive)
        */
-      template<typename IteratorT>
-      Slice slice(IteratorT start, IteratorT end);
+      template<typename StartIteratorT, typename EndIteratorT>
+        requires utility::are_iterators_or_chunk_iterators<ChunkedList, StartIteratorT, EndIteratorT>
+      Slice slice(StartIteratorT start, EndIteratorT end);
 
       /**
        * @brief Returns a const portion of the ChunkedList from the start iterator to the end iterator
@@ -542,8 +598,9 @@ namespace chunked_list {
        * @param end The iterator for the end of the slice (exclusive)
        * @return An in-place slice which references the start iterator to the end iterator (inclusive-exclusive)
        */
-      template<typename IteratorT>
-      ConstSlice slice(IteratorT start, IteratorT end) const;
+      template<typename StartIteratorT, typename EndIteratorT>
+        requires utility::are_iterators_or_chunk_iterators<ChunkedList, StartIteratorT, EndIteratorT>
+      ConstSlice slice(StartIteratorT start, EndIteratorT end) const;
 
       /**
        * @brief Pushes an element to the front of the ChunkedList
@@ -585,21 +642,21 @@ namespace chunked_list {
 
       /**
        * @brief Returns whether the ChunkedList is empty
-       * @return True if front Chunk's next index is 0, otherwise false
+       * @return Whether the front Chunk's next index is 0
        */
       bool empty() const;
 
       /**
        * @brief Returns whether the given ChunkedList is equal to the other
        * @param other The ChunkedList to compare the given one to, for equality
-       * @return True if each Chunk has the same elements, and the ChunkedLists are both of the same size
+       * @return Whether each Chunk has the same elements, and the containers are both of the same size
        */
       bool operator==(const ChunkedList &other) const;
 
       /**
        * @brief Returns whether the given ChunkedList is unequal to the other, regarding the stored elements
        * @param other The container to compare the given one to, for inequality
-       * @return True if at least one element is unequal between both containers
+       * @return Whether at least one element is unequal between both containers or the containers are of different sizes
        */
       bool operator!=(const ChunkedList &other) const;
 

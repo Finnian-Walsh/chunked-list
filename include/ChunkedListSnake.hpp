@@ -10,6 +10,10 @@ namespace chunked_list {
     public:
       using derived_chunked_list::ChunkedList;
 
+      using derived_chunked_list::value_type;
+
+      using derived_chunked_list::chunk_size;
+
       using chunk_iterator = typename derived_chunked_list::ChunkIterator;
 
       using const_chunk_iterator = typename derived_chunked_list::ConstChunkIterator;
@@ -36,11 +40,17 @@ namespace chunked_list {
 
       const_chunk_iterator end_chunk() const;
 
-      template<typename Iterator_Type>
-      slice get_slice(Iterator_Type begin, Iterator_Type end);
+      slice get_slice(size_t start_index, size_t end_index);
 
-      template<typename Iterator_Type>
-      const_slice get_slice(Iterator_Type begin, Iterator_Type end) const;
+      const_slice get_slice(size_t start_index, size_t end_index) const;
+
+      template<typename Begin_Iterator_Type, typename End_Iterator_Type>
+        requires utility::are_iterators_or_chunk_iterators<derived_chunked_list, Begin_Iterator_Type, End_Iterator_Type>
+      slice get_slice(Begin_Iterator_Type begin, End_Iterator_Type end);
+
+      template<typename Begin_Iterator_Type, typename End_Iterator_Type>
+        requires utility::are_iterators_or_chunk_iterators<derived_chunked_list, Begin_Iterator_Type, End_Iterator_Type>
+      const_slice get_slice(Begin_Iterator_Type begin, End_Iterator_Type end) const;
 
       using derived_chunked_list::push;
 

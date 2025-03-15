@@ -4,41 +4,41 @@
 
 namespace chunked_list {
   template<typename T, size_t ChunkSize>
-  template<typename IteratorT>
-  typename ChunkedList<T, ChunkSize>::Slice ChunkedList<T, ChunkSize>::slice(IteratorT start, IteratorT end) {
-    static_assert(utility::is_iterator<ChunkedList, IteratorT> || utility::is_chunk_iterator<ChunkedList, IteratorT>,
-      "IteratorT must be from GenericIterator or GenericChunkIterator!");
-    return Slice{start, end};
-  }
-
-  template<typename T, size_t ChunkSize>
-  template<typename IteratorT>
-  typename ChunkedList<T, ChunkSize>::ConstSlice ChunkedList<T, ChunkSize>::slice(IteratorT start, IteratorT end) const {
-    static_assert(utility::is_iterator<ChunkedList, IteratorT>, "IteratorT must be from GenericIterator!");
-    return ConstSlice{start, end};
-  }
-
-
-  template<typename T, size_t ChunkSize>
   template<typename ChunkT, typename ValueT>
-  ChunkedList<T, ChunkSize>::GenericSlice<ChunkT,
-    ValueT>::GenericSlice(IteratorT start, IteratorT end) : firstIndex{start.getIndex()},
-                                                            lastIndex{(end - 1).getIndex()},
-                                                            firstChunk{&*start.getChunkIterator()},
-                                                            lastChunk{&*(end - 1).getChunkIterator()} {
+  template<typename StartIteratorT, typename EndIteratorT>
+    requires utility::are_iterators<ChunkedList<T, ChunkSize>, StartIteratorT, EndIteratorT>
+  ChunkedList<T, ChunkSize>::GenericSlice<ChunkT, ValueT>::GenericSlice(StartIteratorT start, EndIteratorT end)
+    : startIterator{start}, endIterator{end} {
   }
 
   template<typename T, size_t ChunkSize>
   template<typename ChunkT, typename ValueT>
-  ChunkedList<T, ChunkSize>::GenericSlice<ChunkT, ValueT>::GenericSlice(ChunkIteratorT start, ChunkIteratorT end)
-    : firstIndex{0}, lastIndex{(end - 1)->nextIndex - 1}, firstChunk{&*start}, lastChunk{&*end} {
+  template<typename StartChunkIteratorT, typename EndChunkIteratorT>
+    requires utility::are_chunk_iterators<ChunkedList<T, ChunkSize>, StartChunkIteratorT, EndChunkIteratorT>
+  ChunkedList<T, ChunkSize>::GenericSlice<ChunkT, ValueT>::GenericSlice(StartChunkIteratorT start, EndChunkIteratorT last)
+    : startIterator{start}, endIterator{last, last->nextIndex} {}
+
+  template<typename T, size_t ChunkSize>
+  template<typename ChunkT, typename ValueT>
+  template<typename SliceT>
+    requires utility::is_slice<ChunkedList<T, ChunkSize>, SliceT>
+  bool ChunkedList<T, ChunkSize>::GenericSlice<ChunkT, ValueT>::operator==(SliceT other) const {
+    return other.begin() == startIterator && other.end() == endIterator;
+  }
+
+  template<typename T, size_t ChunkSize>
+  template<typename ChunkT, typename ValueT>
+  template<typename SliceT>
+    requires utility::is_slice<ChunkedList<T, ChunkSize>, SliceT>
+  bool ChunkedList<T, ChunkSize>::GenericSlice<ChunkT, ValueT>::operator!=(SliceT other) const {
+    return other.begin() != startIterator || other.end() != endIterator;
   }
 
   template<typename T, size_t ChunkSize>
   template<typename ChunkT, typename ValueT>
   ValueT &ChunkedList<T, ChunkSize>::GenericSlice<ChunkT, ValueT>::operator[](size_t index) {
-    index += firstIndex;
-    auto targetChunk = ChunkIterator{firstChunk};
+    index += startIterator.getIndex();
+    auto targetChunk = startIterator.getChunkIterator();
 
     while (index >= ChunkSize) {
       index -= ChunkSize;
@@ -56,32 +56,31 @@ namespace chunked_list {
 
   template<typename T, size_t ChunkSize>
   template<typename ChunkT, typename ValueT>
-  typename ChunkedList<T, ChunkSize>::template GenericSlice<ChunkT, ValueT>::IteratorT
+  typename ChunkedList<T, ChunkSize>::template GenericSlice<ChunkT, ValueT>::IteratorType
   ChunkedList<T, ChunkSize>::GenericSlice<ChunkT, ValueT>::begin() {
-    return IteratorT{firstChunk, firstIndex};
+    return startIterator;
   }
 
   template<typename T, size_t ChunkSize>
   template<typename ChunkT, typename ValueT>
-  typename ChunkedList<T, ChunkSize>::template GenericSlice<ChunkT, ValueT>::ConstIteratorT
+  typename ChunkedList<T, ChunkSize>::template GenericSlice<ChunkT, ValueT>::ConstIteratorType
   ChunkedList<T, ChunkSize>::GenericSlice<ChunkT, ValueT>::begin() const {
-    return ConstIteratorT{firstChunk, firstIndex};
+    return startIterator;
   }
 
   template<typename T, size_t ChunkSize>
   template<typename ChunkT, typename ValueT>
-  typename ChunkedList<T, ChunkSize>::template GenericSlice<ChunkT, ValueT>::IteratorT
+  typename ChunkedList<T, ChunkSize>::template GenericSlice<ChunkT, ValueT>::IteratorType
   ChunkedList<T, ChunkSize>::GenericSlice<ChunkT, ValueT>::end() {
-    return ++IteratorT{lastChunk, lastIndex};
+    return endIterator;
   }
 
   template<typename T, size_t ChunkSize>
   template<typename ChunkT, typename ValueT>
-  typename ChunkedList<T, ChunkSize>::template GenericSlice<ChunkT, ValueT>::ConstIteratorT
+  typename ChunkedList<T, ChunkSize>::template GenericSlice<ChunkT, ValueT>::ConstIteratorType
   ChunkedList<T, ChunkSize>::GenericSlice<ChunkT, ValueT>::end() const {
-    return ++ConstIteratorT{lastChunk, lastIndex};
+    return endIterator;
   }
-
 
   // template<typename T, size_t ChunkSize>
   // template<typename ChunkT, typename ValueT>
