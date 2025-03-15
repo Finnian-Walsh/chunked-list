@@ -34,17 +34,25 @@ namespace chunked_list {
     template<typename ChunkedListT, typename IteratorT>
     concept is_iterator = is_template_of<ChunkedListT::template GenericIterator, IteratorT>::value;
 
+    template<typename ChunkedListT, typename... IteratorTs>
+    concept are_iterators = (is_iterator<ChunkedListT, IteratorTs> && ...);
+
     template<typename ChunkedListT, typename ChunkIteratorT>
-    concept is_chunk_iterator = is_template_of<
-      ChunkedListT::template GenericChunkIterator,
-      ChunkIteratorT
-    >::value;
+    concept is_chunk_iterator = is_template_of<ChunkedListT::template GenericChunkIterator, ChunkIteratorT>::value;
+
+    template<typename ChunkedListT, typename... ChunkIteratorTs>
+    concept are_chunk_iterators = (is_chunk_iterator<ChunkedListT, ChunkIteratorTs> && ...);
+
+    template<typename ChunkedListT, typename... IteratorTs>
+    concept are_iterators_or_chunk_iterators = are_iterators<ChunkedListT, IteratorTs...> ||
+      are_chunk_iterators<ChunkedListT, IteratorTs...>;
 
     template<typename ChunkedListT, typename SliceT>
     concept is_slice = is_template_of<ChunkedListT::template GenericSlice, SliceT>::value;
 
     template<typename OutputStream, typename T>
     concept can_insert = requires(OutputStream os, T obj) {
+      std::is_reference_v<std::decay_t<decltype(os << obj)>>;
       { os << obj };
       std::is_base_of_v<std::remove_reference_t<decltype(os << obj)>, OutputStream>;
     };
