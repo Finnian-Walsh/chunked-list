@@ -7,11 +7,13 @@
 
 using namespace TestUtility;
 
-inline RandomNumberGenerator::RandomNumberGenerator() : engine{std::random_device{}()} {
+template<std::integral T>
+RandomNumberGenerator<T>::RandomNumberGenerator() : engine{std::random_device{}()} {
 }
 
-inline int RandomNumberGenerator::operator()(const int min, const int max) {
-  return std::uniform_int_distribution{min, max}(engine);
+template<std::integral T>
+T RandomNumberGenerator<T>::operator()(const T min, const T max) {
+  return std::uniform_int_distribution<T>{min, max}(engine);
 }
 
 inline TestData::TestData(const char *str) : source{str}, nullSource{false} {
@@ -70,7 +72,7 @@ template<
   template <template <typename, size_t> typename, size_t, typename...> typename Functor,
   template <typename, size_t> typename ChunkedListType,
   size_t ChunkSize = 1,
-  size_t FinalChunkSize = 2,
+  size_t FinalChunkSize = 16,
   typename... Args
 >
 void TestUtility::callFunction(const char *functionName) {
@@ -140,7 +142,7 @@ void Tests::Test<Functor>::call() const {
   Functor<ChunkedListType, ChunkSize, Args...>{}();
 
   if constexpr (FinalChunkSize > ChunkSize) {
-    secondaryCall<ChunkedListType, ChunkSize + 1, FinalChunkSize, Args...>(1);
+    secondaryCall<ChunkedListType, ChunkSize + 1, FinalChunkSize, Args...>(2);
   }
 }
 
@@ -295,22 +297,40 @@ void Tests::SlicesAndIterators<ChunkedListType, ChunkSize>::operator()() const {
   using ListType = ChunkedListType<DefaultT, ChunkSize>;
 
   performTask("List creation");
-  ListType chunkedList{1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-  const ListType &constListRef = chunkedList; {
-    performTask("Slicing");
-    constexpr size_t START_OFFSET = 3, END_OFFSET = 7;
-    auto slice = chunkedList.VARIANT_CODE(slice, get_slice)
-      (begin(chunkedList) + START_OFFSET, begin(chunkedList) + END_OFFSET);
+  ListType chunkedList;
 
-    for (size_t index = 0; index < END_OFFSET - START_OFFSET; ++index) {
-      const DefaultT expected = START_OFFSET + index + 1;
+  constexpr size_t MAX = 10;
+
+  performTask("Pushing");
+  for (int i = 1; i <= MAX; ++i) {
+    chunkedList.push(i);
+  }
+
+  const ListType &constListRef = chunkedList;
+  {
+    performTask("Slicing (1)");
+    RandomNumberGenerator rng;
+
+    const size_t startOffset = rng(0, MAX - 2);
+    const size_t endOffset = rng(startOffset, MAX - 1);
+
+    auto slice = chunkedList.VARIANT_CODE(slice, get_slice)
+      (begin(chunkedList) + startOffset, begin(chunkedList) + endOffset);
+
+    auto slice2 = constListRef.VARIANT_CODE(slice, get_slice)
+      (begin(chunkedList) + startOffset, begin(chunkedList) + endOffset);
+
+    THROW_IF(slice != slice2, "");
+
+    for (size_t index = 0; index < endOffset - startOffset; ++index) {
+      const DefaultT expected = startOffset + index + 1;
       THROW_IF(
         slice[index] != expected,
         (ordinalize(index) += " item in slice is not equal to ") += std::to_string(expected)
       );
     }
 
-    DefaultT expected = START_OFFSET + 1;
+    DefaultT expected = startOffset + 1;
     for (const int num : slice) {
       THROW_IF(
         num != expected,
@@ -319,7 +339,25 @@ void Tests::SlicesAndIterators<ChunkedListType, ChunkSize>::operator()() const {
       ++expected;
     }
 
-    THROW_IF(expected != 8, std::string{"Expected 'expected' to be equal to 7, but got "} += std::to_string(expected));
+    const size_t expectedExpected = endOffset + 1;
+    THROW_IF(expected != expectedExpected, ((std::string{"Expected 'expected' to be equal to "} += std::to_string(expectedExpected)) += " but got ") += std::to_string(expected));
+  } {
+    performTask("Slicing (2)");
+    RandomNumberGenerator<size_t> rng;
+    const size_t startIndex = rng(0, MAX - 2);
+    const size_t endIndex = rng(startIndex, MAX - 1);
+
+    DefaultT expected = startIndex + 1;
+
+    for (auto slice = chunkedList.VARIANT_CODE(slice, get_slice)(startIndex, endIndex); auto item : slice) {
+      THROW_IF(item != expected,
+        ((std::string{"Expected item to be equal to "} += std::to_string(expected)) += " but got ") += std::to_string(item)
+      );
+      ++expected;
+    }
+
+    const size_t expectedExpected = endIndex + 1;
+    THROW_IF(expected != expectedExpected, ((std::string{"Expected 'expected' to be equal to "} += std::to_string(expectedExpected)) += " but got ") += std::to_string(expected))
   } {
     int total{};
 
@@ -342,7 +380,8 @@ void Tests::SlicesAndIterators<ChunkedListType, ChunkSize>::operator()() const {
     THROW_IF(constBegin != begin, "const Iterator is unequal to Iterator")
     THROW_IF(it2 != std::next(constBegin), "std::next(Iterator) is unequal to std::next(const Iterator)")
 
-    THROW_IF(begin + 9 != constBegin + 9, "Iterator + 9 is unequal to const Iterator + 9")
+    constexpr size_t OFFSET = 9;
+    THROW_IF(begin + OFFSET != constBegin + OFFSET, (std::string{"Iterator + "} += std::to_string(OFFSET) += " is unequal to const Iterator + ") += std::to_string(OFFSET));
   } {
     auto beginChunk = chunkedList.VARIANT_CODE(beginChunk, begin_chunk)();
     auto constBeginChunk = constListRef.VARIANT_CODE(beginChunk, begin_chunk)();
