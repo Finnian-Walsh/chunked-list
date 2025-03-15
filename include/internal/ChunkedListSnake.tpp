@@ -27,17 +27,35 @@ namespace chunked_list {
   }
 
   template<typename T, size_t Chunk_Size>
-  template<typename Iterator_Type>
   typename Chunked_List<T, Chunk_Size>::slice
-  Chunked_List<T, Chunk_Size>::get_slice(Iterator_Type begin, Iterator_Type end) {
-    return derived_chunked_list::template slice<Iterator_Type>(begin, end);
+  Chunked_List<T, Chunk_Size>::get_slice(size_t start_index, size_t end_index) {
+    return derived_chunked_list::slice(start_index, end_index);
   }
 
   template<typename T, size_t Chunk_Size>
-  template<typename Iterator_Type>
   typename Chunked_List<T, Chunk_Size>::const_slice
-  Chunked_List<T, Chunk_Size>::get_slice(Iterator_Type begin, Iterator_Type end) const {
-    return derived_chunked_list::template slice<Iterator_Type>(begin, end);
+  Chunked_List<T, Chunk_Size>::get_slice(size_t start_index, size_t end_index) const {
+    return derived_chunked_list::slice(start_index, end_index);
+  }
+
+  template<typename T, size_t Chunk_Size>
+  template<typename Begin_Iterator_Type, typename End_Iterator_Type>
+    requires utility::are_iterators_or_chunk_iterators<
+      ChunkedList<T, Chunk_Size>, Begin_Iterator_Type, End_Iterator_Type
+    >
+  typename Chunked_List<T, Chunk_Size>::slice
+  Chunked_List<T, Chunk_Size>::get_slice(Begin_Iterator_Type begin, End_Iterator_Type end) {
+    return derived_chunked_list::template slice<Begin_Iterator_Type, End_Iterator_Type>(begin, end);
+  }
+
+  template<typename T, size_t Chunk_Size>
+  template<typename Begin_Iterator_Type, typename End_Iterator_Type>
+    requires utility::are_iterators_or_chunk_iterators<
+      ChunkedList<T, Chunk_Size>, Begin_Iterator_Type, End_Iterator_Type
+    >
+  typename Chunked_List<T, Chunk_Size>::const_slice
+  Chunked_List<T, Chunk_Size>::get_slice(Begin_Iterator_Type begin, End_Iterator_Type end) const {
+    return derived_chunked_list::template slice<Begin_Iterator_Type, End_Iterator_Type>(begin, end);
   }
 
   template<typename T, size_t Chunk_Size>
