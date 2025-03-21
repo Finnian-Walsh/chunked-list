@@ -10,7 +10,11 @@ int main() {
 
   using namespace Tests;
 
-  callFunction<FrontAndBack, Chunked_List>("Front and back");
+  callFunction<Initialization, ChunkedList>("Initialization");
+
+  callFunction<Chunk, Chunked_List>("Chunk");
+
+  callFunction<ListEnds, Chunked_List>("List ends");
 
   callFunction<Insertion, Chunked_List>("Insertion");
 

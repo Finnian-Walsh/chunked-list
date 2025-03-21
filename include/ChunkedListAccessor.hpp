@@ -10,12 +10,18 @@ namespace chunked_list {
     public:
       using Chunk = typename DerivedChunkedList::Chunk;
 
-      size_t getChunkCount();
+      template<typename ChunkT, typename ValueT>
+      using GenericIterator = typename DerivedChunkedList::template GenericIterator<ChunkT, ValueT>;
 
-      Chunk *getFront();
+      using DerivedChunkedList::pushChunk;
 
-      Chunk *getBack();
+      using DerivedChunkedList::chunkCount;
+
+      using DerivedChunkedList::front;
+
+      using DerivedChunkedList::back;
   };
-}
 
-#include "internal/ChunkedListAccessor.tpp"
+  template<typename ChunkedListT>
+  using Accessor = ChunkedListAccessor<typename ChunkedListT::value_type, ChunkedListT::chunk_size>;
+}

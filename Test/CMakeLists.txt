@@ -9,6 +9,8 @@ set(SRC_FILES)
 
 include_directories(../include)
 
+add_compile_options(-Wall -Wextra -Wpedantic -Werror)
+
 add_executable(ChunkedListTest
         ${SRC_FILES}
         test_files/ChunkedListTest.cpp
