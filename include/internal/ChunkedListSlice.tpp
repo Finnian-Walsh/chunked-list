@@ -20,22 +20,6 @@ namespace chunked_list {
 
   template<typename T, size_t ChunkSize>
   template<typename ChunkT, typename ValueT>
-  template<typename SliceT>
-    requires utility::is_slice<ChunkedList<T, ChunkSize>, SliceT>
-  bool ChunkedList<T, ChunkSize>::GenericSlice<ChunkT, ValueT>::operator==(SliceT other) const {
-    return other.begin() == startIterator && other.end() == endIterator;
-  }
-
-  template<typename T, size_t ChunkSize>
-  template<typename ChunkT, typename ValueT>
-  template<typename SliceT>
-    requires utility::is_slice<ChunkedList<T, ChunkSize>, SliceT>
-  bool ChunkedList<T, ChunkSize>::GenericSlice<ChunkT, ValueT>::operator!=(SliceT other) const {
-    return other.begin() != startIterator || other.end() != endIterator;
-  }
-
-  template<typename T, size_t ChunkSize>
-  template<typename ChunkT, typename ValueT>
   ValueT &ChunkedList<T, ChunkSize>::GenericSlice<ChunkT, ValueT>::operator[](size_t index) {
     index += startIterator.getIndex();
     auto targetChunk = startIterator.getChunkIterator();
@@ -52,6 +36,22 @@ namespace chunked_list {
   template<typename ChunkT, typename ValueT>
   const ValueT &ChunkedList<T, ChunkSize>::GenericSlice<ChunkT, ValueT>::operator[](const size_t index) const {
     return const_cast<GenericSlice *>(this)->operator[](index);
+  }
+
+  template<typename T, size_t ChunkSize>
+  template<typename ChunkT, typename ValueT>
+  template<typename SliceT>
+    requires utility::is_slice<ChunkedList<T, ChunkSize>, SliceT>
+  bool ChunkedList<T, ChunkSize>::GenericSlice<ChunkT, ValueT>::operator==(SliceT other) const {
+    return other.begin() == startIterator && other.end() == endIterator;
+  }
+
+  template<typename T, size_t ChunkSize>
+  template<typename ChunkT, typename ValueT>
+  template<typename SliceT>
+    requires utility::is_slice<ChunkedList<T, ChunkSize>, SliceT>
+  bool ChunkedList<T, ChunkSize>::GenericSlice<ChunkT, ValueT>::operator!=(SliceT other) const {
+    return other.begin() != startIterator || other.end() != endIterator;
   }
 
   template<typename T, size_t ChunkSize>
