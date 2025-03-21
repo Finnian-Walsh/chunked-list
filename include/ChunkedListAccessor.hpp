@@ -10,20 +10,18 @@ namespace chunked_list {
     public:
       using Chunk = typename DerivedChunkedList::Chunk;
 
+      template<typename ChunkT, typename ValueT>
+      using GenericIterator = typename DerivedChunkedList::template GenericIterator<ChunkT, ValueT>;
+
       using DerivedChunkedList::pushChunk;
 
-      size_t getChunkCount();
+      using DerivedChunkedList::chunkCount;
 
-      Chunk *getFront();
+      using DerivedChunkedList::front;
 
-      Chunk *getBack();
+      using DerivedChunkedList::back;
   };
 
   template<typename ChunkedListT>
-  using Accessor = std::enable_if_t<
-    utility::is_template_of_v<ChunkedList, ChunkedListT>,
-    ChunkedListAccessor<typename ChunkedListT::value_type, ChunkedListT::chunk_size>
-  >;
+  using Accessor = ChunkedListAccessor<typename ChunkedListT::value_type, ChunkedListT::chunk_size>;
 }
-
-#include "internal/ChunkedListAccessor.tpp"

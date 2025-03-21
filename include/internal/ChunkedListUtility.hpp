@@ -34,6 +34,15 @@ namespace chunked_list {
     template<template <typename...> typename TemplateT, typename T>
     concept is_template_of_v = is_template_of<TemplateT, T>::value;
 
+    template<typename>
+    struct is_chunked_list : std::false_type {};
+
+    template<typename T, size_t ChunkSize>
+    struct is_chunked_list<ChunkedList<T, ChunkSize>> : std::true_type {};
+
+    template<typename T>
+    concept is_chunked_list_v = is_chunked_list<T>::value;
+
     template<typename ChunkedListT, typename IteratorT>
     concept is_iterator = is_template_of_v<ChunkedListT::template GenericIterator, IteratorT>;
 
@@ -58,6 +67,16 @@ namespace chunked_list {
       std::is_reference_v<std::decay_t<decltype(os << obj)>>;
       { os << obj };
       std::is_base_of_v<std::remove_reference_t<decltype(os << obj)>, OutputStream>;
+    };
+
+    template<typename OutputStream>
+    concept can_stringify = requires(OutputStream os) {
+      { os.str() };
+    };
+
+    template<typename T, typename... Args>
+    concept can_construct = requires(T obj, Args... args) {
+        { T{args...} };
     };
 
     namespace sort_functions {
