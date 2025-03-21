@@ -10,14 +10,14 @@ using namespace TestUtility;
 
 int main() {
   constexpr size_t pushes = 1'000'000; {
-    std::cout << "ChunkedList<int> push time test:" << std::endl;
-    ChunkedList<int, pushes> testList;
+    std::cout << "ChunkedList<size_t> push time test:" << std::endl;
+    ChunkedList<size_t, pushes> testList;
 
     std::cout << "starting..." << std::endl;
 
     const auto start = std::chrono::high_resolution_clock::now();
 
-    for (int i = 0; i < pushes; i++) {
+    for (size_t i = 0; i < pushes; i++) {
       testList.push(i);
     }
 
@@ -28,14 +28,14 @@ int main() {
     std::cout << "Total time taken to push " << pushes << " integers: " << duration_s.count() << " seconds\n";
     std::cout << "Average time to push 1 integer: " << duration_ns.count() / pushes << " nanoseconds\n" << std::endl;
   } {
-    std::cout << "std::list<int> push time test" << std::endl;
-    std::list<int> testList;
+    std::cout << "std::list<size_t> push time test" << std::endl;
+    std::list<size_t> testList;
 
     std::cout << "starting..." << std::endl;
 
     const auto start = std::chrono::high_resolution_clock::now();
 
-    for (int i = 0; i < pushes; i++) {
+    for (size_t i = 0; i < pushes; i++) {
       testList.push_back(i);
     }
 
@@ -46,8 +46,8 @@ int main() {
     std::cout << "Total time taken to push " << pushes << " integers: " << duration_s.count() << " seconds\n";
     std::cout << "Average time to push 1 integer: " << duration_ns.count() / pushes << " nanoseconds\n" << std::endl;
   } {
-    std::cout << "std::vector<int> push time test" << std::endl;
-    std::vector<int> testList;
+    std::cout << "std::vector<size_t> push time test" << std::endl;
+    std::vector<size_t> testList;
 
     std::cout << "starting..." << std::endl;
 
@@ -55,7 +55,7 @@ int main() {
 
     const auto start = std::chrono::high_resolution_clock::now();
 
-    for (int i = 0; i < pushes; i++) {
+    for (size_t i = 0; i < pushes; i++) {
       testList.push_back(i);
     }
 
