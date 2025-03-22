@@ -1,7 +1,7 @@
 #pragma once
 
 #include "TestUtility.hpp"
-#include "ChunkedListAccessor.hpp"
+#include "chunked-list/ChunkedListAccessor.hpp"
 
 #include <ranges>
 #include <cstdlib>

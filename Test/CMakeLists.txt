@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(SRC_FILES)
 
-include_directories(../include)
+include_directories(../include include)
 
 add_compile_options(-Wall -Wextra -Wpedantic -Werror)
 
