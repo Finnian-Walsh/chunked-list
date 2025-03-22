@@ -1,6 +1,6 @@
 #define CHUNKED_LIST_TYPE 1
 
-#include "../core/TestUtility.hpp"
+#include "TestUtility.hpp"
 
 using namespace TestUtility;
 

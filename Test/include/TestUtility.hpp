@@ -5,9 +5,9 @@
 #include <type_traits>
 #include <unordered_set>
 
-#include "ChunkedList.hpp"
-#include "ChunkedListAccessor.hpp"
-#include "ChunkedListSnake.hpp"
+#include "chunked-list/ChunkedList.hpp"
+#include "chunked-list/ChunkedListAccessor.hpp"
+#include "chunked-list/ChunkedListSnake.hpp"
 
 using namespace chunked_list;
 using namespace utility;

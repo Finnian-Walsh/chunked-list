@@ -1,7 +1,7 @@
 #define CHUNKED_LIST_TYPE 2
 
-#include "ChunkedListSnake.hpp"
-#include "../core/TestUtility.hpp"
+#include "chunked-list/ChunkedListSnake.hpp"
+#include "TestUtility.hpp"
 
 using namespace TestUtility;
 
