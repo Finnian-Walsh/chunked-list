@@ -1,7 +1,7 @@
 #define CHUNKED_LIST_TYPE 2
 
-#include "chunked-list/ChunkedListSnake.hpp"
 #include "TestUtility.hpp"
+#include "chunked-list/ChunkedListSnake.hpp"
 
 using namespace TestUtility;
 
@@ -10,23 +10,23 @@ int main() {
 
   using namespace Tests;
 
-  callFunction<Initialization, ChunkedList>("Initialization");
+  callFunction<Chunk, Chunked_List>();
 
-  callFunction<Chunk, Chunked_List>("Chunk");
+  callFunction<Initialization, ChunkedList>();
 
-  callFunction<ListEnds, Chunked_List>("List ends");
+  callFunction<Edges, Chunked_List>();
 
-  callFunction<Insertion, Chunked_List>("Insertion");
+  callFunction<Insertion, Chunked_List>();
 
-  callFunction<Sorting, Chunked_List>("Sorting");
+  callFunction<Sorting, Chunked_List>();
 
-  callFunction<SlicesAndIterators, Chunked_List>("Slices and iterators");
+  callFunction<SlicesAndIterators, Chunked_List>();
 
-  callFunction<PushingAndPopping, Chunked_List>("Pushing and popping");
+  callFunction<PushingAndPopping, Chunked_List>();
 
-  callFunction<EqualityAndInequality, Chunked_List>("Equality and inequality");
+  callFunction<EqualityAndInequality, Chunked_List>();
 
-  callFunction<ConcatenationAndIndexing, Chunked_List>("Concatenation and indexing");
+  callFunction<ConcatenationAndIndexing, Chunked_List>();
 
   SUCCESS
 }

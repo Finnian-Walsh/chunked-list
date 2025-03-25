@@ -9,23 +9,23 @@ int main() {
 
   using namespace Tests;
 
-  callFunction<Initialization, ChunkedList>("Initialization");
+  callFunction<Chunk, ChunkedList>();
 
-  callFunction<Chunk, ChunkedList>("Chunk");
+  callFunction<Initialization, ChunkedList>();
 
-  callFunction<ListEnds, ChunkedList>("List ends");
+  callFunction<Edges, ChunkedList>();
 
-  callFunction<Insertion, ChunkedList>("Insertion");
+  callFunction<Insertion, ChunkedList>();
 
-  callFunction<Sorting, ChunkedList>("Sorting");
+  callFunction<Sorting, ChunkedList>();
 
-  callFunction<SlicesAndIterators, ChunkedList>("Slices and iterators");
+  callFunction<SlicesAndIterators, ChunkedList>();
 
-  callFunction<PushingAndPopping, ChunkedList>("Pushing and popping");
+  callFunction<PushingAndPopping, ChunkedList>();
 
-  callFunction<EqualityAndInequality, ChunkedList>("Equality and inequality");
+  callFunction<EqualityAndInequality, ChunkedList>();
 
-  callFunction<ConcatenationAndIndexing, ChunkedList>("Concatenation and indexing");
+  callFunction<ConcatenationAndIndexing, ChunkedList>();
 
   SUCCESS
 }
