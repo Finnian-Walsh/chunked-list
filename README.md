@@ -137,7 +137,7 @@ Then, add the `include` directory to your include directories.
 ```cpp
 #include <iostream>
 
-#include "ChunkedList.hpp"
+#include "chunked-list/ChunkedList.hpp"
 
 using chunked_list::ChunkedList;
 
@@ -166,7 +166,7 @@ Output:
 ```cpp
 #include <iostream>
 
-#include "ChunkedList.hpp"
+#include "chunked-list/ChunkedList.hpp"
 
 using chunked_list::ChunkedList;
 
@@ -188,7 +188,7 @@ Hello world!
 For projects where `snake_case` naming conventions are used, include:
 
 ```cpp
-#include "ChunkedListSnake.hpp"
+#include "chunked-list/ChunkedListSnake.hpp"
 ```
 
 This implements the **Chunked_List** class, with identical functionality to the **ChunkedList**.
@@ -198,7 +198,7 @@ This implements the **Chunked_List** class, with identical functionality to the 
 ```cpp
 #include <random>
 
-#include "ChunkedListSnake.hpp"
+#include "chunked-list/ChunkedListSnake.hpp"
 
 using chunked_list::Chunked_List;
 

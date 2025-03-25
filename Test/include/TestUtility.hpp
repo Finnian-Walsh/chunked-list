@@ -1,8 +1,8 @@
 #pragma once
 
-#include <unistd.h>
 #include <random>
 #include <type_traits>
+#include <unistd.h>
 #include <unordered_set>
 
 #include "chunked-list/ChunkedList.hpp"
@@ -13,8 +13,13 @@ using namespace chunked_list;
 using namespace utility;
 
 #define BEGIN std::cout << "Starting tests..." << std::endl;
-#define SUCCESS std::cout << "All " << testNumber << " tests have been ran without any memory leakage." << std::endl; return EXIT_SUCCESS;
-#define THROW_IF(condition, str) if (condition) { throw std::runtime_error(str); }
+#define SUCCESS                                                                                                        \
+  std::cout << "All " << testNumber << " tests have been ran." << std::endl;                                           \
+  return EXIT_SUCCESS;
+#define THROW_IF(condition, str)                                                                                       \
+  if (condition) {                                                                                                     \
+    throw std::runtime_error(str);                                                                                     \
+  }
 
 #ifndef CHUNKED_LIST_TYPE
 #define CHUNKED_LIST_TYPE 1
@@ -29,7 +34,6 @@ using namespace utility;
 #endif
 
 namespace TestUtility {
-
   template<typename T>
   class MallocAllocator {
     public:
@@ -37,18 +41,14 @@ namespace TestUtility {
 
       MallocAllocator() = default;
 
-      template <typename U>
-      explicit MallocAllocator(const MallocAllocator<U>&) {}
+      template<typename U>
+      explicit MallocAllocator(const MallocAllocator<U> &) {}
 
       ~MallocAllocator() = default;
 
-      static T *allocate(const std::size_t n) {
-        return static_cast<T *>(malloc(n * sizeof(T)));
-      }
+      static T *allocate(const std::size_t n) { return static_cast<T *>(malloc(n * sizeof(T))); }
 
-      static void deallocate(T *ptr, const std::size_t) {
-        free(ptr);
-      }
+      static void deallocate(T *ptr, const std::size_t) { free(ptr); }
 
       template<typename U, typename... Args>
       static void construct(U *ptr, Args &&...args) {
@@ -60,10 +60,6 @@ namespace TestUtility {
         ptr->~U();
       }
   };
-
-  inline std::unordered_set<void *, std::hash<void*>, std::equal_to<void*>, MallocAllocator<void *>> allocatedPointers;
-
-  inline bool monitoringAllocations;
 
 #ifdef LOG_LEVEL
   constexpr inline int LogLevel = LOG_LEVEL;
@@ -78,7 +74,7 @@ namespace TestUtility {
 
   template<std::integral T = int>
   class RandomNumberGenerator {
-    std::mt19937 engine;
+      std::mt19937 engine;
 
     public:
       RandomNumberGenerator();
@@ -87,14 +83,14 @@ namespace TestUtility {
   };
 
   class TestError final : public std::exception {
-    std::string message;
+      std::string message;
 
     public:
       explicit TestError(std::string &&message);
 
       explicit TestError(const std::string &message);
 
-       ~TestError() override = default;
+      ~TestError() override = default;
 
       const char *what() const noexcept override;
   };
@@ -120,22 +116,16 @@ namespace TestUtility {
   template<typename T>
   concept string_compatible = string_initializable<T> || string_convertible<T> || to_stringable<T> || insertable<T>;
 
-  template<string_compatible T>
-  std::string makeString(T object);
-
-  template<typename... Ts>
-  std::string concatenate(Ts &&...args);
-
   template<typename... Ts>
   std::string NoMonitor_concatenate(Ts &&...args);
 
   inline class TestData {
-    std::string test{};
-    std::string source{};
-    std::string task{};
+      std::string test{};
+      std::string source{};
+      std::string task{};
 
-    bool nullSource{true};
-    bool nullTask{true};
+      bool nullSource{true};
+      bool nullTask{true};
 
     public:
       TestData() = default;
@@ -165,14 +155,9 @@ namespace TestUtility {
       bool taskIsNull() const;
   } testData;
 
-  template<
-    template <typename, typename...> typename Functor,
-    template <typename, size_t> typename ChunkedListType,
-    size_t ChunkSize,
-    size_t FinalChunkSize,
-    typename... Args
-  >
-  void callFunction(const char *functionName);
+  template<template<typename> typename Functor, template<typename, size_t> typename ChunkedListType, size_t ChunkSize,
+           size_t FinalChunkSize>
+  void callFunction();
 
   void performTask(const char *taskName, int logLevel = 10);
 
@@ -186,81 +171,120 @@ namespace TestUtility {
     static constexpr size_t DefaultChunkSize = 16;
     static_assert(DefaultChunkSize > 0, "DefaultChunkSize must be greater than 0!");
 
-    template<template<typename, size_t> typename ChunkedListType, template<typename, typename...> typename Functor>
+    template<template<typename, size_t> typename ChunkedListType, template<typename> typename Functor>
     class Test {
-      template<
-        size_t ChunkSize,
-        size_t FinalChunkSize,
-        typename... Args
-      >
-      void secondaryCall(size_t testNumber) const;
+        template<size_t ChunkSize, size_t FinalChunkSize>
+        void secondaryCall(size_t testNumber) const;
 
       public:
-        template<size_t ChunkSize, size_t FinalChunkSize, typename... Args>
+        template<size_t ChunkSize, size_t FinalChunkSize>
           requires(FinalChunkSize >= ChunkSize)
         void call() const;
-    };
 
-    template<typename>
-    struct Initialization {
-      void operator()() const;
+        const char *name = Functor<ChunkedListType<DefaultT, DefaultChunkSize>>{}.name;
     };
 
     template<typename>
     struct Chunk {
-      void operator()() const;
+        const char *name = "Chunks";
 
-      template<typename LCT>
-      static void indexing();
+        void operator()() const;
 
-      template<typename CT>
-      static void iteration();
+        template<typename LCT>
+        static void initialization();
 
-      template<typename CT>
-      static void advancing();
+        template<typename LCT>
+        static void indexing();
 
-      template<typename CT>
-      static void insertion();
+        template<typename CT>
+        static void stacking();
+
+        template<typename CT>
+        static void arithmetic();
+
+        template<typename CT>
+        static void size();
+
+        template<typename CT>
+        static void comparison();
+
+        template<typename CT>
+        static void iteration();
     };
 
     template<typename>
-    struct ListEnds {
-      void operator()();
+    struct GenericChunkIterator {
+        const char *name = "Generic Chunk Iterators";
+
+        void operator()() const;
+    };
+
+    template<typename>
+    struct Initialization {
+        const char *name = "Initialization";
+
+        void operator()() const;
+
+        template<typename AT>
+        static void default_construction();
+
+        template<typename AT>
+        static void initializer_list_construction();
+    };
+
+    template<typename>
+    struct Edges {
+        const char *name = "List edges";
+
+        void operator()();
     };
 
     template<typename>
     struct Insertion {
-      void operator()();
+        const char *name = "Insertion";
+
+        void operator()();
     };
 
     template<typename>
     struct Sorting {
-      void operator()() const;
+        const char *name = "Sorting";
 
-      template<SortType>
-      void sort() const;
+        void operator()() const;
+
+        template<SortType>
+        void sort() const;
     };
 
     template<typename>
     struct SlicesAndIterators {
-      void operator()() const;
+        const char *name = "Slices and iterators";
+
+        void operator()() const;
     };
 
     template<typename>
     struct PushingAndPopping {
-      void operator()() const;
+        const char *name = "Pushing and popping";
+
+        void operator()() const;
     };
 
     template<typename>
     struct EqualityAndInequality {
-      void operator()() const;
+        const char *name = "Equality and inequality";
+
+        void operator()() const;
     };
 
     template<typename>
     struct ConcatenationAndIndexing {
-      void operator()() const;
-    };
-  }
-}
+        const char *name = "Concatenation and indexing";
 
-#include "TestUtility.tpp"
+        void operator()() const;
+    };
+  } // namespace Tests
+} // namespace TestUtility
+
+#include "internal/TestUtility.tpp"
+#include "internal/Tests.tpp"

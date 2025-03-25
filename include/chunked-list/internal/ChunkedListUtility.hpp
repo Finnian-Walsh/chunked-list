@@ -1,7 +1,7 @@
 #pragma once
 
-#include <type_traits>
 #include <cstddef>
+#include <type_traits>
 
 namespace chunked_list {
   template<typename T, size_t ChunkSize>
@@ -19,19 +19,19 @@ namespace chunked_list {
     template<typename OutputStream>
     using DeduceStreamStringType = decltype(std::declval<OutputStream>().str());
 
-    template<template <typename...> typename TemplateT, typename T>
+    template<template<typename...> typename TemplateT, typename T>
     class is_template_of {
-      template<typename>
-      class Impl : public std::false_type {};
+        template<typename>
+        class Impl : public std::false_type {};
 
-      template<typename... Args>
-      class Impl<TemplateT<Args...> > : public std::true_type {};
+        template<typename... Args>
+        class Impl<TemplateT<Args...>> : public std::true_type {};
 
       public:
         static constexpr bool value = Impl<T>::value;
     };
 
-    template<template <typename...> typename TemplateT, typename T>
+    template<template<typename...> typename TemplateT, typename T>
     concept is_template_of_v = is_template_of<TemplateT, T>::value;
 
     template<typename>
@@ -56,8 +56,8 @@ namespace chunked_list {
     concept are_chunk_iterators = (is_chunk_iterator<ChunkedListT, ChunkIteratorTs> && ...);
 
     template<typename ChunkedListT, typename... IteratorTs>
-    concept are_iterators_or_chunk_iterators = are_iterators<ChunkedListT, IteratorTs...> ||
-      are_chunk_iterators<ChunkedListT, IteratorTs...>;
+    concept are_iterators_or_chunk_iterators =
+      are_iterators<ChunkedListT, IteratorTs...> || are_chunk_iterators<ChunkedListT, IteratorTs...>;
 
     template<typename ChunkedListT, typename SliceT>
     concept is_slice = is_template_of_v<ChunkedListT::template GenericSlice, SliceT>;
@@ -76,8 +76,22 @@ namespace chunked_list {
 
     template<typename T, typename... Args>
     concept can_construct = requires(T obj, Args... args) {
-        { T{args...} };
+      { T{args...} };
     };
+
+    template<typename T>
+    concept can_to_string = requires(T obj) {
+      { std::to_string(obj) } -> std::same_as<std::string>;
+    };
+
+    template<typename T>
+    concept string_compatible = can_construct<std::string, T> || can_to_string<T> || can_insert<std::ostringstream, T>;
+
+    template<string_compatible T>
+    std::string intoString(T value);
+
+    template<string_compatible... Args>
+    std::string concatenate(Args &&...args);
 
     namespace sort_functions {
       template<typename Compare, typename T, size_t ChunkSize>
@@ -95,8 +109,8 @@ namespace chunked_list {
 
       template<typename Compare, typename T, size_t ChunkSize>
       void heap_sort(ChunkedList<T, ChunkSize> &chunkedList);
-    }
-  }
-}
+    } // namespace sort_functions
+  } // namespace utility
+} // namespace chunked_list
 
 #include "ChunkedListUtility.tpp"
