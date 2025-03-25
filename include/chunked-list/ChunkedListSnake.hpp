@@ -5,7 +5,7 @@
 namespace chunked_list {
   template<typename T, size_t Chunk_Size = 32>
   class Chunked_List final : ChunkedList<T, Chunk_Size> {
-    using derived_chunked_list = ChunkedList<T, Chunk_Size>;
+      using derived_chunked_list = ChunkedList<T, Chunk_Size>;
 
     public:
       using derived_chunked_list::ChunkedList;
@@ -78,7 +78,7 @@ namespace chunked_list {
       template<typename, size_t, bool>
       friend std::ostream &operator<<(std::ostream &os, Chunked_List &chunked_list);
   };
-}
+} // namespace chunked_list
 
 template<typename T, size_t Chunk_Size>
 typename chunked_list::Chunked_List<T, Chunk_Size>::iterator

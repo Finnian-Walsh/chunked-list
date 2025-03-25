@@ -5,7 +5,7 @@
 namespace chunked_list {
   template<typename T, size_t ChunkSize>
   class ChunkedListAccessor final : public ChunkedList<T, ChunkSize> {
-    using DerivedChunkedList = ChunkedList<T, ChunkSize>;
+      using DerivedChunkedList = ChunkedList<T, ChunkSize>;
 
     public:
       using Chunk = typename DerivedChunkedList::Chunk;
@@ -24,4 +24,4 @@ namespace chunked_list {
 
   template<typename ChunkedListT>
   using Accessor = ChunkedListAccessor<typename ChunkedListT::value_type, ChunkedListT::chunk_size>;
-}
+} // namespace chunked_list

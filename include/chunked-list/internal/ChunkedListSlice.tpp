@@ -7,16 +7,16 @@ namespace chunked_list {
   template<typename ChunkT, typename ValueT>
   template<typename StartIteratorT, typename EndIteratorT>
     requires utility::are_iterators<ChunkedList<T, ChunkSize>, StartIteratorT, EndIteratorT>
-  ChunkedList<T, ChunkSize>::GenericSlice<ChunkT, ValueT>::GenericSlice(StartIteratorT start, EndIteratorT end)
-    : startIterator{start}, endIterator{end} {
-  }
+  ChunkedList<T, ChunkSize>::GenericSlice<ChunkT, ValueT>::GenericSlice(StartIteratorT start, EndIteratorT end) :
+      startIterator{start}, endIterator{end} {}
 
   template<typename T, size_t ChunkSize>
   template<typename ChunkT, typename ValueT>
   template<typename StartChunkIteratorT, typename EndChunkIteratorT>
     requires utility::are_chunk_iterators<ChunkedList<T, ChunkSize>, StartChunkIteratorT, EndChunkIteratorT>
-  ChunkedList<T, ChunkSize>::GenericSlice<ChunkT, ValueT>::GenericSlice(StartChunkIteratorT start, EndChunkIteratorT last)
-    : startIterator{start}, endIterator{last, last->nextIndex} {}
+  ChunkedList<T, ChunkSize>::GenericSlice<ChunkT, ValueT>::GenericSlice(StartChunkIteratorT start,
+                                                                        EndChunkIteratorT last) :
+      startIterator{start}, endIterator{last, last->nextIndex} {}
 
   template<typename T, size_t ChunkSize>
   template<typename ChunkT, typename ValueT>
@@ -93,4 +93,4 @@ namespace chunked_list {
   // void ChunkedList<T, ChunkSize>::GenericSlice<ChunkT, ValueT>::expandRight(const size_t distance) {
   //   // implement this
   // }
-}
+} // namespace chunked_list
