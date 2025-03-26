@@ -10,13 +10,13 @@
 namespace chunked_list {
   /**
    * @class ChunkedList
-   * @brief A contiguous-like linear data structure, implemented as a linked list of fixed-size Chunks.
+   * @brief A contiguous-like linear data structure, implemented as a linked list of fixed-size chunks.
    *
-   * The ChunkedList class is designed for efficient storage and access to elements, using Chunks of segmented memory to
+   * The chunked list class is designed for efficient storage and access to elements, using chunks of segmented memory to
    * store data.
    *
-   * @tparam T The type of elements to be stored in the ChunkedList
-   * @tparam ChunkSize The number of elements in each Chunk, with a default value of 32
+   * @tparam T The type of elements to be stored in the chunked list
+   * @tparam ChunkSize The number of elements in each chunk, with a default value of 32
    */
   template<typename T, size_t ChunkSize = 32>
   class ChunkedList {
@@ -81,12 +81,12 @@ namespace chunked_list {
           void pop();
 
           /**
-           * @brief returns the Chunk offset chunks ahead of the given Chunk. Does not account for overflows
+           * @brief returns the chunk offset chunks ahead of the given chunk without accounting for overflows
            */
           Chunk &operator+(size_t offset);
 
           /**
-           * @brief returns the Chunk offset chunks behind the given Chunk. Does not account for overflows
+           * @brief returns the chunk offset chunks behind the given chunk without accounting for overflows
            */
           Chunk &operator-(size_t offset);
 
@@ -121,17 +121,17 @@ namespace chunked_list {
       };
 
       /**
-       * @brief The first Chunk in the ChunkedList
+       * @brief The first chunk in the chunked list
        */
       Chunk *front{nullptr};
 
       /**
-       * @brief The most recent Chunk in the ChunkedList
+       * @brief The most recent chunk in the chunked list
        */
       Chunk *back{nullptr};
 
       /**
-       * @brief simply pushes a chunk to the back, without mutating the chunkCount
+       * @brief simply pushes a chunk to the back, without mutating the chunk count
        */
       template<bool PrevAssigned = false>
       void pushChunk(Chunk *chunk);
@@ -285,17 +285,17 @@ namespace chunked_list {
           explicit GenericIterator(IteratorT iterator);
 
           /**
-           * @brief Initialises the GenericIterator with a specified chunk pointer and optional index
+           * @brief Initializes the iterator with a specified chunk pointer and optional index
            */
           explicit GenericIterator(ChunkT *chunkPtr, size_t index = 0);
 
           /**
-           * @brief Initialises the GenericIterator with a specified chunk reference and optional index
+           * @brief Initializes the iterator with a specified chunk reference and optional index
            */
           explicit GenericIterator(ChunkT &chunkRef, size_t index = 0);
 
           /**
-           * @brief Initialises the GenericIterator with a specified generic ChunkIterator and optional index
+           * @brief Initializes the iterator with a specified chunk iterator and optional index
            */
           explicit GenericIterator(ChunkIteratorT chunkIterator, size_t index = 0);
 
@@ -311,28 +311,28 @@ namespace chunked_list {
           /**
            * @brief Prefix increment operator, incrementing the index by one unless it is equal to the ChunkSize, in
            * which case incrementing the chunkIterator member by one
-           * @return The incremented GenericIterator
+           * @return The incremented generic iterator
            */
           GenericIterator operator++();
 
           /**
            * @brief Prefix increment operator, incrementing the index by one unless it is equal to the ChunkSize, in
            * which case incrementing the chunkIterator member by one
-           * @return The original GenericIterator
+           * @return The original generic iterator
            */
           GenericIterator operator++(int);
 
           /**
            * @brief Prefix decrement operator, decrementing the index by one unless it is equal to 0, in which case
            * decrementing the chunkIterator member by one
-           * @return The decremented GenericIterator
+           * @return The decremented generic iterator
            */
           GenericIterator operator--();
 
           /**
            * @brief Postfix decrement operator, decrementing the index by one unless it is equal to 0, in which case
            * decrementing the chunkIterator member by one
-           * @return The original GenericIterator
+           * @return The original generic iterator
            */
           GenericIterator operator--(int);
 
@@ -400,14 +400,14 @@ namespace chunked_list {
           const ValueT &operator*() const;
 
           /**
-           * @brief Allows direct access to the members of the object "stored" within the iterator, of type ValueT
-           * @return A pointer to the object "stored" within the iterator, of type ValueT
+           * @brief Allows direct access to the members of the object referenced by the iterator, of type ValueT
+           * @return A pointer to the object referenced by the iterator, of type ValueT
            */
           ValueT *operator->();
 
           /**
-           * @brief Allows direct const access to the members of the object "stored" within the iterator, of type ValueT
-           * @return A const pointer to the object "stored" within the iterator, of type ValueT
+           * @brief Allows direct const access to the members of the object referenced by the iterator, of type ValueT
+           * @return A const pointer to the object referenced by the iterator, of type ValueT
            */
           const ValueT *operator->() const;
 
@@ -430,13 +430,13 @@ namespace chunked_list {
           const ChunkT &getChunk() const;
 
           /**
-           * @brief A get function, returning a copy of the private chunkIterator member
+           * @brief A get function, returning a copy of the private chunk iterator member
            * @return The chunkIterator stored by the given iterator
            */
           ChunkIteratorT getChunkIterator();
 
           /**
-           * @brief A get function, returning a constant copy of the private chunkIterator member
+           * @brief A get function, returning a constant copy of the private chunk iterator member
            * @return The chunkIterator stored by the given iterator (const)
            */
           ConstChunkIteratorT getChunkIterator() const;
@@ -458,7 +458,7 @@ namespace chunked_list {
 
         public:
           /**
-           * @brief Constructs a slice of a ChunkedList from the start iterator to the last iterator
+           * @brief Constructs a slice of a chunked list from the start iterator to the last iterator
            * (inclusive-exclusive)
            * @param start The iterator for the start of the slice (inclusive)
            * @param end The iterator for the last of the slice (exclusive)
@@ -512,18 +512,18 @@ namespace chunked_list {
 
     public:
       /**
-       * @brief The default constructor for ChunkedList, allocating a single chunk for the front and back
+       * @brief The default constructor for the chunked list, allocating a single chunk for the front and back
        */
       ChunkedList();
 
       /**
-       * @brief A convenience constructor for ChunkedList, allowing items to be added on initialisation
-       * @param initializerList The initializer_list used to determine how the initial chunks will be populated
+       * @brief A convenience constructor for the chunked list, allowing items to be added on initialization
+       * @param initializerList The initializer list used to determine how the initial chunks will be populated
        */
       ChunkedList(std::initializer_list<T> initializerList);
 
       /**
-       * @brief The destructor for ChunkedList, deallocating each chunk starting from the back
+       * @brief The destructor for the chunked list, deallocating each chunk starting from the back
        */
       ~ChunkedList();
 
@@ -538,17 +538,17 @@ namespace chunked_list {
       static constexpr size_t chunk_size = ChunkSize;
 
       /**
-       * @brief The non-const ChunkIterator class used to iterate through each chunk in the chunked list
+       * @brief The non-const chunk iterator class used to iterate through each chunk in the chunked list
        */
       using ChunkIterator = GenericChunkIterator<Chunk>;
 
       /**
-       * @brief The const ChunkIterator class used to iterate through each chunk in the chunked list
+       * @brief The const chunk iterator class used to iterate through each chunk in the chunked list
        */
       using ConstChunkIterator = GenericChunkIterator<const Chunk>;
 
       /**
-       * @brief The non-const iterator class used to iterate through each value of every Chunk in the chunked list
+       * @brief The non-const iterator class used to iterate through each value of every chunk in the chunked list
        */
       using Iterator = GenericIterator<Chunk, T>;
 
@@ -568,21 +568,31 @@ namespace chunked_list {
       using ConstSlice = GenericSlice<const Chunk, const T>;
 
       /**
-       * @brief Direct chunked list indexing, of O(n) search complexity
-       * @param index The index of the element in the ChunkedList
+       * @brief Chunked list indexing, of O(n) search complexity
+       * @param index The index of the element in the chunked list
        * @return A reference to the value at the index
        */
       T &operator[](size_t index);
 
       /**
-       * @brief Direct const chunked list indexing, of O(n) search complexity
-       * @param index The index of the element in the ChunkedList
+       * @brief Const chunked list indexing, of O(n) search complexity
+       * @param index The index of the element in the chunked list
        * @return A const reference to the value at the index
        */
       const T &operator[](size_t index) const;
 
+      /**
+       * @brief Chunked list indexing, of O(n) search complexity
+       * @param index The index of the element in the chunked list
+       * @return A Const reference to the value at the index
+       */
       T &at(size_t index);
 
+      /**
+       * @brief Const chunked list indexing, of O(n) search complexity
+       * @param index The index of the element in the chunked list
+       * @return A const reference to the value at the index
+       */
       const T &at(size_t index) const;
 
       /**
@@ -605,36 +615,36 @@ namespace chunked_list {
 
       /**
        * @brief Returns a const iterator to the element after the last
-       * @returns A ConstIterator referencing the element after the last in the chunked list
+       * @returns A const iterator referencing the element after the last in the chunked list
        */
       ConstIterator end() const;
 
       /**
-       * @brief Returns a chunk iterator to the first Chunk
-       * @returns A ChunkIterator referencing the first Chunk in the chunked list
+       * @brief Returns a chunk iterator to the first chunk
+       * @returns A const iterator referencing the first chunk in the chunked list
        */
       ChunkIterator beginChunk();
 
       /**
-       * @brief Returns a ConstChunkIterator to the first Chunk
-       * @returns A ConstChunkIterator referencing the first Chunk in the chunked list
+       * @brief Returns a const chunk iterator to the first chunk
+       * @returns A const chunk iterator referencing the first chunk in the chunked list
        */
       ConstChunkIterator beginChunk() const;
 
       /**
-       * @brief Returns a ChunkIterator to the first Chunk
-       * @returns A ChunkIterator referencing the first Chunk in the chunked list
+       * @brief Returns a chunk iterator to the first chunk
+       * @returns A chunk iterator referencing the first chunk in the chunked list
        */
       ChunkIterator endChunk();
 
       /**
-       * @brief Returns a ConstChunkIterator to a null Chunk
-       * @returns A ChunkIterator not referencing any Chunk
+       * @brief Returns a const chunk iterator to a null chunk
+       * @returns A chunk iterator not referencing any chunk
        */
       ConstChunkIterator endChunk() const;
 
       /**
-       * @brief Returns a mutable portion of the ChunkedList from the start to end
+       * @brief Returns a mutable portion of the chunked list from the start to end
        * @param startIndex The index for the start of the slice (inclusive)
        * @param endIndex The index for the end of the slice (exclusive)
        * @return An in-place slice which references the start index to the end index (inclusive-exclusive)
@@ -642,7 +652,7 @@ namespace chunked_list {
       Slice slice(size_t startIndex, size_t endIndex);
 
       /**
-       * @brief Returns a const portion of the ChunkedList from the start to end
+       * @brief Returns a const portion of the chunked list from the start to end
        * @param startIndex The index for the start of the slice (inclusive)
        * @param endIndex The index for the last of the slice (exclusive)
        * @return An in-place constant slice which references the start index to the end index (inclusive-exclusive)
@@ -650,7 +660,7 @@ namespace chunked_list {
       ConstSlice slice(size_t startIndex, size_t endIndex) const;
 
       /**
-       * @brief Returns a portion of the ChunkedList from the start iterator to the end iterator
+       * @brief Returns a portion of the chunked list from the start iterator to the end iterator
        * @param start The iterator for the start of the slice (inclusive)
        * @param end The iterator for the end of the slice (exclusive)
        * @return An in-place slice which references the start iterator to the end iterator (inclusive-exclusive)
@@ -660,7 +670,7 @@ namespace chunked_list {
       Slice slice(StartIteratorT start, EndIteratorT end);
 
       /**
-       * @brief Returns a const portion of the ChunkedList from the start iterator to the end iterator
+       * @brief Returns a const portion of the chunked list from the start iterator to the end iterator
        * @param start The iterator for the start of the slice (inclusive)
        * @param end The iterator for the end of the slice (exclusive)
        * @return An in-place slice which references the start iterator to the end iterator (inclusive-exclusive)
@@ -670,13 +680,13 @@ namespace chunked_list {
       ConstSlice slice(StartIteratorT start, EndIteratorT end) const;
 
       /**
-       * @brief Pushes an element to the front of the ChunkedList
+       * @brief Pushes an element to the front of the chunked list
        * @param value The element which will be pushed to the back of the chunked list
        */
       void push(T value);
 
       /**
-       * @brief Pushes an element to the ChunkedList, but constructs it within the emplace function
+       * @brief Pushes an element to the chunked list, but constructs it within the emplace function
        * @tparam Args The types of the arguments used to construct the object
        * @param args The arguments used to construct the object
        */
@@ -685,39 +695,46 @@ namespace chunked_list {
       void emplace(Args &&...args);
 
       /**
-       * @brief Pops the most recent item from the back Chunk of the ChunkedList
+       * @brief Pops the most recent item from the back chunk of the chunked list
        */
       void pop();
 
       /**
-       * @brief Pops the back (most recent) Chunk from the ChunkedList
+       * @brief Pops the back (most recent) chunk from the chunked list
        */
       void popChunk();
 
       /**
-       * @brief Sorts the ChunkedList with a template-decided comparison class and sorting algorithm
-       * @tparam Compare The Compare class used in the sorting algorithm
-       * @tparam Sort The sorting algorithm which should be used
+       * @brief Clears the chunked list
+       * @tparam RetainFront Whether the front chunk should be retained (additional deallocation required if false)
+       */
+      template<bool RetainFront = false>
+      void clear();
+
+      /**
+       * @brief Sorts the chunked list with a template-decided comparison class and sorting algorithm
+       * @tparam Compare The comparison functor used in the sorting algorithm
+       * @tparam Sort The sorting algorithm which is to be used
        */
       template<typename Compare = std::less<T>, utility::SortType Sort = utility::QuickSort>
       void sort();
 
       /**
-       * @brief Returns the total number of elements stored in the ChunkedList
-       * @return The number of Chunks - 1 multiplied by the ChunkSize, plus the back Chunk's next index
+       * @brief Returns the total number of elements stored in the chunked list
+       * @return The number of (chunks - 1) multiplied by the chunk size, plus the back next index of the back chunk
        */
       size_t size() const;
 
       /**
-       * @brief Returns whether the ChunkedList is empty
-       * @return Whether the front Chunk's next index is 0
+       * @brief Returns whether the chunked list is empty
+       * @return Whether the front chunk's next index is 0
        */
       bool empty() const;
 
       /**
        * @brief Returns whether the given chunked list is equal to the other
        * @param other The chunked list to compare the given one to for equality
-       * @return Whether each Chunk has the same elements and the lists are both of the same size
+       * @return Whether each chunk has the same elements and the lists are both of the same size
        */
       bool operator==(const ChunkedList &other) const;
 
@@ -754,9 +771,9 @@ namespace chunked_list {
 } // namespace chunked_list
 
 /**
- * @brief Returns an Iterator to the first element in the given ChunkedList
- * @tparam T The type stored in the container
- * @tparam ChunkSize The size of each Chunk within the container
+ * @brief Returns an Iterator to the first element in the given chunked list
+ * @tparam T The type stored in the chunked list
+ * @tparam ChunkSize The size of each chunk within the chunked list
  * @param chunkedList A reference to the container object
  * @returns An Iterator referencing the first element in the container
  */
@@ -778,7 +795,7 @@ begin(const chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
 /**
  * @brief Returns a const iterator to the end element of the given chunked list
  * @tparam T The type stored in the chunked list
- * @tparam ChunkSize The size of each Chunk within the container
+ * @tparam ChunkSize The size of each chunk within the container
  * @param chunkedList A reference to the chunked list object
  * @returns A const iterator referencing the end element of the chunked list
  */
@@ -787,7 +804,7 @@ typename chunked_list::ChunkedList<T, ChunkSize>::Iterator
 end(chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
 
 /**
- * @brief Returns an iterator referencing the end element of the given ChunkedList
+ * @brief Returns an iterator referencing the end element of the given chunked list
  * @tparam T The type stored in the container
  * @tparam ChunkSize The size of each chunk within the chunked list
  * @param chunkedList A const reference to the chunked list object

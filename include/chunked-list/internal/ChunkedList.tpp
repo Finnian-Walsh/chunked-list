@@ -229,6 +229,26 @@ namespace chunked_list {
   }
 
   template<typename T, size_t ChunkSize>
+  template<bool RetainFront>
+  void ChunkedList<T, ChunkSize>::clear() {
+    if constexpr (RetainFront) {
+      for (size_t i = 0; i < chunkCount - 1; ++i) {
+        Chunk *newBack = back->prevChunk;
+        delete back;
+        back = newBack;
+      }
+    } else {
+      for (size_t i = 0; i < chunkCount; ++i) {
+        Chunk *newBack = back->prevChunk;
+        delete back;
+        back = newBack;
+      }
+
+      back = front = new Chunk{};
+    }
+  }
+
+  template<typename T, size_t ChunkSize>
   template<typename Compare, utility::SortType Sort>
   void ChunkedList<T, ChunkSize>::sort() {
     using namespace utility;
