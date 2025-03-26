@@ -34,9 +34,7 @@ namespace chunked_list {
   }
 
   template<typename T, size_t ChunkSize>
-  ChunkedList<T, ChunkSize>::ChunkedList() : front{new Chunk{}} {
-    back = front;
-  }
+  ChunkedList<T, ChunkSize>::ChunkedList() : front{new Chunk{}}, back{front} {}
 
   template<typename T, size_t ChunkSize>
   ChunkedList<T, ChunkSize>::ChunkedList(std::initializer_list<T> initializerList) {
