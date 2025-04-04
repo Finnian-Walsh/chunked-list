@@ -3,6 +3,7 @@
 #include <cstring>
 #include <functional>
 #include <initializer_list>
+#include <memory>
 #include <sstream>
 
 #include "internal/ChunkedListUtility.hpp"
@@ -12,18 +13,21 @@ namespace chunked_list {
    * @class ChunkedList
    * @brief A contiguous-like linear data structure, implemented as a linked list of fixed-size chunks.
    *
-   * The chunked list class is designed for efficient storage and access to elements, using chunks of segmented memory to
-   * store data.
+   * The chunked list class is designed for efficient storage and access to elements, using chunks of segmented memory
+   * to store data.
    *
    * @tparam T The type of elements to be stored in the chunked list
    * @tparam ChunkSize The number of elements in each chunk, with a default value of 32
+   * @tparam Allocator The allocator used for the allocation and deallocation of data
    */
-  template<typename T, size_t ChunkSize = 32>
+  template<typename T, size_t ChunkSize = 32, typename Allocator = std::allocator<T>>
   class ChunkedList {
       static_assert(ChunkSize > 0, "Chunk Size must be greater than 0");
 
     protected:
       size_t chunkCount{1};
+
+      using AllocatorTraits = std::allocator_traits<Allocator>;
 
       class BoundaryError final : std::exception {
           const std::string message = "Out of bounds";
@@ -80,6 +84,8 @@ namespace chunked_list {
 
           void pop();
 
+          void clear();
+
           /**
            * @brief returns the chunk offset chunks ahead of the given chunk without accounting for overflows
            */
@@ -119,6 +125,12 @@ namespace chunked_list {
 
           void getData(std::string &str) const;
       };
+
+      using ChunkAllocator = typename AllocatorTraits::template rebind_alloc<Chunk>;
+
+      using ChunkAllocatorTraits = std::allocator_traits<ChunkAllocator>;
+
+      ChunkAllocator chunkAllocator{};
 
       /**
        * @brief The first chunk in the chunked list
@@ -538,6 +550,11 @@ namespace chunked_list {
       static constexpr size_t chunk_size = ChunkSize;
 
       /**
+       * @brief Adds the allocator type publicly to the chunked list
+       */
+      using allocator_type = Allocator;
+
+      /**
        * @brief The non-const chunk iterator class used to iterate through each chunk in the chunked list
        */
       using ChunkIterator = GenericChunkIterator<Chunk>;
@@ -777,7 +794,7 @@ namespace chunked_list {
  * @param chunkedList A reference to the container object
  * @returns An Iterator referencing the first element in the container
  */
-template<typename T, size_t ChunkSize>
+template<typename T, size_t ChunkSize, typename Allocator>
 typename chunked_list::ChunkedList<T, ChunkSize>::Iterator
 begin(chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
 
@@ -788,7 +805,7 @@ begin(chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
  * @param chunkedList A const reference to the chunked list object
  * @returns A const iterator referencing the first element of the chunked list
  */
-template<typename T, size_t ChunkSize>
+template<typename T, size_t ChunkSize, typename Allocator>
 typename chunked_list::ChunkedList<T, ChunkSize>::ConstIterator
 begin(const chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
 
@@ -799,7 +816,7 @@ begin(const chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
  * @param chunkedList A reference to the chunked list object
  * @returns A const iterator referencing the end element of the chunked list
  */
-template<typename T, size_t ChunkSize>
+template<typename T, size_t ChunkSize, typename Allocator>
 typename chunked_list::ChunkedList<T, ChunkSize>::Iterator
 end(chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
 
@@ -810,7 +827,7 @@ end(chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
  * @param chunkedList A const reference to the chunked list object
  * @returns An iterator referencing the end element of the chunked list
  */
-template<typename T, size_t ChunkSize>
+template<typename T, size_t ChunkSize, typename Allocator>
 typename chunked_list::ChunkedList<T, ChunkSize>::ConstIterator
 end(const chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
 
@@ -821,7 +838,7 @@ end(const chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
  * @param chunk A reference to the chunk object
  * @return An iterator referencing the first element of the chunk
  */
-template<typename T, size_t ChunkSize>
+template<typename T, size_t ChunkSize, typename Allocator>
 typename chunked_list::ChunkedList<T, ChunkSize>::Iterator
 begin(typename chunked_list::ChunkedList<T, ChunkSize>::Chunk &chunk) noexcept;
 
@@ -832,7 +849,7 @@ begin(typename chunked_list::ChunkedList<T, ChunkSize>::Chunk &chunk) noexcept;
  * @param chunk A const reference to the chunk object
  * @return A const iterator referencing the first element of the chunk
  */
-template<typename T, size_t ChunkSize>
+template<typename T, size_t ChunkSize, typename Allocator>
 typename chunked_list::ChunkedList<T, ChunkSize>::ConstIterator
 begin(const typename chunked_list::ChunkedList<T, ChunkSize>::Chunk &chunk) noexcept;
 
@@ -843,7 +860,7 @@ begin(const typename chunked_list::ChunkedList<T, ChunkSize>::Chunk &chunk) noex
  * @param chunk A reference to the chunk object
  * @return An iterator referencing the end element of the chunk
  */
-template<typename T, size_t ChunkSize>
+template<typename T, size_t ChunkSize, typename Allocator>
 typename chunked_list::ChunkedList<T, ChunkSize>::Iterator
 end(typename chunked_list::ChunkedList<T, ChunkSize>::Chunk &chunk) noexcept;
 
@@ -854,7 +871,7 @@ end(typename chunked_list::ChunkedList<T, ChunkSize>::Chunk &chunk) noexcept;
  * @param chunk A const reference to the chunk object
  * @return A const iterator referencing the end element of the chunk
  */
-template<typename T, size_t ChunkSize>
+template<typename T, size_t ChunkSize, typename Allocator>
 typename chunked_list::ChunkedList<T, ChunkSize>::ConstIterator
 end(const typename chunked_list::ChunkedList<T, ChunkSize>::Chunk &chunk) noexcept;
 

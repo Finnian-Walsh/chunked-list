@@ -3,9 +3,9 @@
 #include "ChunkedList.hpp"
 
 namespace chunked_list {
-  template<typename T, size_t ChunkSize>
-  class ChunkedListAccessor final : public ChunkedList<T, ChunkSize> {
-      using DerivedChunkedList = ChunkedList<T, ChunkSize>;
+  template<typename T, size_t ChunkSize, typename Allocator>
+  class ChunkedListAccessor final : public ChunkedList<T, ChunkSize, Allocator> {
+      using DerivedChunkedList = ChunkedList<T, ChunkSize, Allocator>;
 
     public:
       using Chunk = typename DerivedChunkedList::Chunk;
@@ -23,5 +23,6 @@ namespace chunked_list {
   };
 
   template<typename ChunkedListT>
-  using Accessor = ChunkedListAccessor<typename ChunkedListT::value_type, ChunkedListT::chunk_size>;
+  using Accessor = ChunkedListAccessor<typename ChunkedListT::value_type, ChunkedListT::chunk_size,
+                                       typename ChunkedListT::allocator_type>;
 } // namespace chunked_list

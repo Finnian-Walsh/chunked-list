@@ -31,8 +31,8 @@ namespace chunked_list::utility {
   }
 
   namespace sort_functions {
-    template<typename Compare, typename T, size_t ChunkSize>
-    void bubble_sort(ChunkedList<T, ChunkSize> &chunkedList) {
+    template<typename Compare, typename T, size_t ChunkSize, typename Allocator>
+    void bubble_sort(ChunkedList<T, ChunkSize, Allocator> &chunkedList) {
       if (1 >= chunkedList.size())
         return;
 
@@ -52,8 +52,8 @@ namespace chunked_list::utility {
       } while (!sorted);
     }
 
-    template<typename Compare, typename T, size_t ChunkSize>
-    void selection_sort(ChunkedList<T, ChunkSize> &chunkedList) {
+    template<typename Compare, typename T, size_t ChunkSize, typename Allocator>
+    void selection_sort(ChunkedList<T, ChunkSize, Allocator> &chunkedList) {
       if (1 >= chunkedList.size())
         return;
 
@@ -79,8 +79,8 @@ namespace chunked_list::utility {
       }
     }
 
-    template<typename Compare, typename T, size_t ChunkSize>
-    void insertion_sort(ChunkedList<T, ChunkSize> &chunkedList) {
+    template<typename Compare, typename T, size_t ChunkSize, typename Allocator>
+    void insertion_sort(ChunkedList<T, ChunkSize, Allocator> &chunkedList) {
       if (chunkedList.size() <= 1)
         return;
 
@@ -107,15 +107,15 @@ namespace chunked_list::utility {
       }
     }
 
-    template<typename Compare, typename T, size_t ChunkSize>
-    void quick_sort(typename ChunkedList<T, ChunkSize>::Iterator start,
-                    typename ChunkedList<T, ChunkSize>::Iterator end) {
+    template<typename Compare, typename T, size_t ChunkSize, typename Allocator>
+    void quick_sort(typename ChunkedList<T, ChunkSize, Allocator>::Iterator start,
+                    typename ChunkedList<T, ChunkSize, Allocator>::Iterator end) {
       if (start == end || std::next(start) == end)
         return;
 
       Compare compare;
 
-      using Iterator = typename ChunkedList<T, ChunkSize>::Iterator;
+      using Iterator = typename ChunkedList<T, ChunkSize, Allocator>::Iterator;
 
       Iterator pivot = end;
       --pivot;
@@ -142,12 +142,12 @@ namespace chunked_list::utility {
 
       std::swap(*left, *pivot);
 
-      quick_sort<Compare, T, ChunkSize>(start, left); // Left partition
-      quick_sort<Compare, T, ChunkSize>(std::next(left), end); // Right partition
+      quick_sort<Compare, T, ChunkSize, Allocator>(start, left); // Left partition
+      quick_sort<Compare, T, ChunkSize, Allocator>(std::next(left), end); // Right partition
     }
 
-    template<typename Compare, typename T, size_t ChunkSize>
-    void heap_sort(ChunkedList<T, ChunkSize> &chunkedList) {
+    template<typename Compare, typename T, size_t ChunkSize, typename Allocator>
+    void heap_sort(ChunkedList<T, ChunkSize, Allocator> &chunkedList) {
       if (1 >= chunkedList.size())
         return;
 
