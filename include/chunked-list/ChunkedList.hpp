@@ -723,9 +723,9 @@ namespace chunked_list {
 
       /**
        * @brief Clears the chunked list
-       * @tparam RetainFront Whether the front chunk should be retained (additional deallocation required if false)
+       * @tparam DestroyFront Whether the front chunk should be fully cleared
        */
-      template<bool RetainFront = false>
+      template<bool DestroyFront = true>
       void clear();
 
       /**

@@ -213,8 +213,10 @@ namespace TestUtility {
   std::string ordinalize(Number n);
 
   namespace Tests {
-    using DefaultT = int;
-    static_assert(std::is_integral_v<DefaultT>, "Default ChunkedList type must be an integral!");
+    using IntegralT = int;
+    static_assert(std::is_integral_v<IntegralT>, "Default ChunkedList type must be an integral!");
+
+    using StringT = std::basic_string<char, std::char_traits<char>, CustomAllocator<char>>;
 
     static constexpr size_t DefaultChunkSize = 16;
     static_assert(DefaultChunkSize > 0, "DefaultChunkSize must be greater than 0!");
@@ -229,7 +231,7 @@ namespace TestUtility {
           requires(FinalChunkSize >= ChunkSize)
         void call() const;
 
-        const char *name = Functor<ChunkedListType<DefaultT, DefaultChunkSize, MallocAllocator<DefaultT>>>{}.name;
+        const char *name = Functor<ChunkedListType<IntegralT, DefaultChunkSize, MallocAllocator<IntegralT>>>{}.name;
     };
 
     template<typename>
@@ -300,7 +302,8 @@ namespace TestUtility {
 
         void operator()() const;
 
-        static void do_retain_front();
+        template<bool ClearFront>
+        static void clear();
 
         static void dont_retain_front();
 
