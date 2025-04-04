@@ -47,12 +47,13 @@ deallocated is recommended against.
 When a **ChunkedList** instance is deallocated, every **Chunk** gets deallocated, from the `back` to the `front`.
 
 ```cpp
-template<typename T, size_t ChunkSize>
-ChunkedList<T, ChunkSize>::~ChunkedList() {
+template<typename T, size_t ChunkSize, typename Allocator>
+ChunkedList<T, ChunkSize, Allocator>::~ChunkedList() {
   do {
-    Chunk *newBack = back->prevChunk;
-    delete back;
-    back = newBack;
+    Chunk *prev = back->prevChunk;
+    back->~Chunk();
+    ChunkAllocatorTraits::deallocate(chunkAllocator, back, 1);
+    back = prev;
   } while (back);
 }
 ```
@@ -72,11 +73,11 @@ for (T value : chunkedList) {
 ```
 
 ```cpp
-template<typename T, size_t ChunkSize>
-ChunkedList<T, ChunkSize>::Iterator begin(ChunkedList<T, ChunkSize> &chunkedList);
+template<typename T, size_t ChunkSize, typename Allocator>
+ChunkedList<T, ChunkSize, Allocator>::Iterator begin(ChunkedList<T, ChunkSize, Allocator> &chunkedList);
 
-template<typename T, size_t ChunkSize>
-ChunkedList<T, ChunkSize>::Iterator end(ChunkedList<T, ChunkSize> &chunkedList);
+template<typename T, size_t ChunkSize, typename Allocator>
+ChunkedList<T, ChunkSize, Allocator>::Iterator end(ChunkedList<T, ChunkSize, Allocator> &chunkedList);
 ```
 
 ### Sorting
@@ -93,15 +94,16 @@ By default, the sort function uses `std::less<T>` to compare types and `QuickSor
 
 ### Private member accessing
 
-A **ChunkedListAccessor** class provides safe access to the private members:
+The **ChunkedListAccessor** template class provides safe access to the non-public members:
 
 - front (first chunk)
 - back (last chunk)
 - chunkCount (number of chunks)
+- pushChunk (insert a chunk to the back of the list)
 
 ```cpp
-template<typename T, size_t ChunkSize>
-class ChunkedListAccessor final : ChunkedList<T, ChunkSize>;
+template<typename T, size_t ChunkSize, typename Allocator>
+class ChunkedListAccessor final : ChunkedList<T, ChunkSize, Allocator>;
 ```
 
 Usage:
@@ -109,11 +111,19 @@ Usage:
 ```cpp
 using namespace chunked_list;
 
-auto &accessor = static_cast<ChunkedListAccessor<T, ChunkSize>>(list);
+auto &accessor = static_cast<ChunkedListAccessor<T, ChunkSize, Allocator>>(list);
 
 auto front = accessor.getFront();
 auto back = accessor.getBack();
 size_t chunkCount = accessor.getChunkCount();
+```
+
+Furthermore, the **Accessor** type aliases the **ChunkedListAccessor** for any given **ChunkedList**
+
+```cpp
+template<typename ChunkedListT>
+using Accessor = ChunkedListAccessor<typename ChunkedListT::value_type, ChunkedListT::chunk_size,
+typename ChunkedListT::allocator_type>;
 ```
 
 ## Installation
@@ -185,13 +195,14 @@ Hello world!
 
 ## Snake Case Variant
 
-For projects where `snake_case` naming conventions are used, include:
+For projects where `snake_case` naming conventions are used, one can include:
 
 ```cpp
 #include "chunked-list/ChunkedListSnake.hpp"
 ```
 
-This implements the **Chunked_List** class, with identical functionality to the **ChunkedList**.
+This implements the **Chunked_List** class, which has identical functionality to the **ChunkedList**, but uses snake
+case for its members.
 
 ### Example
 
