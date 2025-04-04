@@ -316,13 +316,15 @@ void Tests::Clearing<CLT>::clear() {
   CLT list;
   constexpr size_t CHUNK_SIZE = CLT::chunk_size;
 
-  for (size_t i = 0; i < CHUNK_SIZE * 5; ++i) {
-    list.push(static_cast<IntegralT>(i));
+  for (size_t multiplier = 1; multiplier <= 5; ++multiplier) {
+    for (size_t i = 0; i < CHUNK_SIZE * multiplier; ++i) {
+      list.push(static_cast<IntegralT>(i));
+    }
+
+    list.template clear<ClearFront>();
+
+    postliminary_checks(list);
   }
-
-  list.template clear<ClearFront>();
-
-  postliminary_checks(list);
 }
 
 template<typename CLT>

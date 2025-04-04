@@ -257,13 +257,12 @@ namespace chunked_list {
   template<typename T, size_t ChunkSize, typename Allocator>
   template<bool DestroyFront>
   void ChunkedList<T, ChunkSize, Allocator>::clear() {
-    Chunk *prev = back->prevChunk;
-    do {
+    while (back != front) {
+      Chunk *prev = back->prevChunk;
       back->~Chunk();
       ChunkAllocatorTraits::deallocate(chunkAllocator, back, 1);
       back = prev;
-      prev = prev->prevChunk;
-    } while (prev);
+    }
 
     if constexpr (DestroyFront) {
       front->~Chunk();
