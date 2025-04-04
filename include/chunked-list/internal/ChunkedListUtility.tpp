@@ -16,6 +16,10 @@ namespace chunked_list::utility {
       return std::to_string(value);
     }
 
+    if constexpr (can_stringify<T>) {
+      return value.str();
+    }
+
     if constexpr (can_insert<std::ostringstream, T>) {
       std::ostringstream oss;
       oss << value;
