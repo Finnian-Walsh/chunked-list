@@ -61,7 +61,8 @@ namespace chunked_list {
 
     for (size_t offset = 1; offset < chunkCount - 1; ++offset) {
       Chunk *chunk = ChunkAllocatorTraits::allocate(chunkAllocator, 1);
-      ChunkAllocatorTraits::construct(chunkAllocator, chunk, initializerList.begin() + offset * ChunkSize, ChunkSize, back);
+      ChunkAllocatorTraits::construct(chunkAllocator, chunk, initializerList.begin() + offset * ChunkSize, ChunkSize,
+                                      back);
       pushChunk<true>(chunk);
     }
 
@@ -69,8 +70,9 @@ namespace chunked_list {
 
     Chunk *ultimateChunk = ChunkAllocatorTraits::allocate(chunkAllocator, 1);
 
-    ChunkAllocatorTraits::construct(chunkAllocator, ultimateChunk, initializerList.begin() + (chunkCount - 1) * ChunkSize,
-                           remainingItems == 0 ? ChunkSize : remainingItems, back);
+    ChunkAllocatorTraits::construct(chunkAllocator, ultimateChunk,
+                                    initializerList.begin() + (chunkCount - 1) * ChunkSize,
+                                    remainingItems == 0 ? ChunkSize : remainingItems, back);
 
     pushChunk<true>(ultimateChunk);
   }
@@ -253,28 +255,21 @@ namespace chunked_list {
   }
 
   template<typename T, size_t ChunkSize, typename Allocator>
-  template<bool RetainFront>
+  template<bool DestroyFront>
   void ChunkedList<T, ChunkSize, Allocator>::clear() {
-    if constexpr (RetainFront) {
-      Chunk *prev = back->prevChunk;
-      do {
-        back->~Chunk();
-        ChunkAllocatorTraits::deallocate(chunkAllocator, back, 1);
-        back = prev;
-        prev = prev->prevChunk;
-      } while (prev);
+    Chunk *prev = back->prevChunk;
+    do {
+      back->~Chunk();
+      ChunkAllocatorTraits::deallocate(chunkAllocator, back, 1);
+      back = prev;
+      prev = prev->prevChunk;
+    } while (prev);
 
-      front->clear();
-    } else {
-      do {
-        Chunk *prev = back->prevChunk;
-        back->~Chunk();
-        ChunkAllocatorTraits::deallocate(chunkAllocator, back, 1);
-        back = prev;
-      } while (back);
-
-      back = front = ChunkAllocatorTraits::allocate(chunkAllocator, 1);
+    if constexpr (DestroyFront) {
+      front->~Chunk();
       ChunkAllocatorTraits::construct(chunkAllocator, front);
+    } else {
+      front->clear();
     }
 
     chunkCount = 1;
