@@ -9,7 +9,7 @@ void Tests::Chunk<CLT>::operator()() const {
 
   constexpr size_t CHUNK_SIZE = CLT::chunk_size;
   constexpr size_t ENLARGED_CHUNK_SIZE = CHUNK_SIZE * 2;
-  using LargeChunkType = typename Accessor<ChunkedList<DefaultT, ENLARGED_CHUNK_SIZE>>::Chunk;
+  using LargeChunkType = typename Accessor<ChunkedList<IntegralT, ENLARGED_CHUNK_SIZE>>::Chunk;
 
   initialization<ChunkType>();
   indexing<LargeChunkType>();
@@ -21,44 +21,44 @@ void Tests::Chunk<CLT>::operator()() const {
 }
 
 template<typename CLT>
-template<typename CT>
+template<typename ChunkT>
 void Tests::Chunk<CLT>::initialization() {
-  std::vector<DefaultT> vec;
+  std::vector<IntegralT> vec;
 
-  for (size_t index = 0; index < CT::chunk_size; ++index) {
-    vec.push_back(static_cast<DefaultT>(index));
+  for (size_t index = 0; index < ChunkT::chunk_size; ++index) {
+    vec.push_back(static_cast<IntegralT>(index));
   }
 
-  CT *ptr = nullptr;
-  DefaultT value{};
+  ChunkT *ptr = nullptr;
+  IntegralT value{};
 
-  CT chunk1;
-  CT chunk2{ptr, ptr};
-  CT chunk3{ptr};
+  ChunkT chunk1;
+  ChunkT chunk2{ptr, ptr};
+  ChunkT chunk3{ptr};
 
-  CT chunk4{vec.data(), vec.size(), ptr, ptr};
-  CT chunk5{vec.data(), vec.size(), ptr};
-  CT chunk6{vec.data(), vec.size()};
+  ChunkT chunk4{vec.data(), vec.size(), ptr, ptr};
+  ChunkT chunk5{vec.data(), vec.size(), ptr};
+  ChunkT chunk6{vec.data(), vec.size()};
 
-  CT chunk7{value, ptr, ptr};
-  CT chunk8{value, ptr};
-  CT chunk9{value};
+  ChunkT chunk7{value, ptr, ptr};
+  ChunkT chunk8{value, ptr};
+  ChunkT chunk9{value};
 }
 
 template<typename CLT>
 template<typename LCT>
 void Tests::Chunk<CLT>::indexing() {
   performTask("Chunk indexing");
-  std::vector<DefaultT> vec;
+  std::vector<IntegralT> vec;
 
   for (size_t i = 0; i < LCT::chunk_size; ++i) {
-    vec.push_back(static_cast<DefaultT>(i));
+    vec.push_back(static_cast<IntegralT>(i));
   }
 
   std::unique_ptr<LCT> chunk = std::make_unique<LCT>(vec.data(), vec.size());
 
   for (size_t i = 0; i < LCT::chunk_size; ++i) {
-    THROW_IF((*chunk)[i] != static_cast<DefaultT>(i),
+    THROW_IF((*chunk)[i] != static_cast<IntegralT>(i),
              concatenate("Expected ", ordinalize(i), " element of chunked list to be equal to ", i))
   }
 }
@@ -73,11 +73,11 @@ void Tests::Chunk<CLT>::stacking() {
   CT chunk;
 
   for (size_t i = 0; i < CHUNK_SIZE; ++i) {
-    chunk.push(static_cast<DefaultT>(i));
+    chunk.push(static_cast<IntegralT>(i));
   }
 
   for (size_t i = 0; i < CHUNK_SIZE; ++i) {
-    const DefaultT item = chunk[i];
+    const IntegralT item = chunk[i];
     THROW_IF(static_cast<size_t>(item) != i, concatenate("Expected item to be equal to ", i))
   }
 }
@@ -131,9 +131,9 @@ void Tests::Chunk<CLT>::size() {
   for (size_t loadPercentage = 0; loadPercentage <= 100; loadPercentage += 10) {
     const size_t load = chunk_size * loadPercentage / 100;
 
-    std::vector<DefaultT> vec;
+    std::vector<IntegralT> vec;
 
-    for (DefaultT i = 0; i < static_cast<DefaultT>(load); ++i) {
+    for (IntegralT i = 0; i < static_cast<IntegralT>(load); ++i) {
       vec.push_back(i);
     }
 
@@ -162,16 +162,16 @@ void Tests::Chunk<CLT>::iteration() {
   performTask("Chunk iteration");
   constexpr size_t CHUNK_SIZE = CT::chunk_size;
 
-  std::vector<DefaultT> vec;
+  std::vector<IntegralT> vec;
   vec.reserve(CHUNK_SIZE);
 
   for (size_t i = 0; i < CHUNK_SIZE; ++i) {
-    vec.push_back(static_cast<DefaultT>(i));
+    vec.push_back(static_cast<IntegralT>(i));
   }
 
   std::unique_ptr<CT> chunkPtr = std::make_unique<CT>(vec.data(), CHUNK_SIZE);
 
-  DefaultT expected = 0;
+  IntegralT expected = 0;
   for (auto it = chunkPtr->begin(); it != chunkPtr->end(); ++it) {
     auto item = *it;
     THROW_IF(item != expected, concatenate("Expected item to be equal to ", expected, " but received ", item))
@@ -290,7 +290,7 @@ void Tests::Iterators<CLT>::operator()() const {
 
   THROW_IF(!endEq, "end(list) returned a different type to list.end()!")
 
-  DefaultT expectedValue = 1;
+  IntegralT expectedValue = 1;
 
   for (auto it = memBeg; it != memEnd; ++it) {
     auto val = *it;
@@ -299,41 +299,28 @@ void Tests::Iterators<CLT>::operator()() const {
     ++expectedValue;
   }
 
-  constexpr DefaultT expectedExpectedValue = 17;
+  constexpr IntegralT expectedExpectedValue = 17;
   THROW_IF(expectedValue != expectedExpectedValue,
            concatenate("Expected 'expectedValue' to be ", expectedExpectedValue, ", but received ", expectedValue))
 }
 
 template<typename CLT>
 void Tests::Clearing<CLT>::operator()() const {
-  do_retain_front();
-  dont_retain_front();
+  clear<true>();
+  clear<false>();
 }
 
 template<typename CLT>
-void Tests::Clearing<CLT>::do_retain_front() {
+template<bool ClearFront>
+void Tests::Clearing<CLT>::clear() {
   CLT list;
   constexpr size_t CHUNK_SIZE = CLT::chunk_size;
 
   for (size_t i = 0; i < CHUNK_SIZE * 5; ++i) {
-    list.push(static_cast<DefaultT>(i));
+    list.push(static_cast<IntegralT>(i));
   }
 
-  list.template clear<true>();
-
-  postliminary_checks(list);
-}
-
-template<typename CLT>
-void Tests::Clearing<CLT>::dont_retain_front() {
-  CLT list;
-  constexpr size_t CHUNK_SIZE = CLT::chunk_size;
-
-  for (size_t i = 0; i < CHUNK_SIZE * 5; ++i) {
-    list.push(static_cast<DefaultT>(i));
-  }
-
-  list.template clear<false>();
+  list.template clear<ClearFront>();
 
   postliminary_checks(list);
 }
@@ -343,10 +330,10 @@ void Tests::Clearing<CLT>::postliminary_checks(CLT &list) {
   const size_t size = list.size();
   THROW_IF(size != 0, concatenate("Expected cleared list to have size of 0 but size() returned ", size))
 
-  constexpr DefaultT NUM = 69;
+  constexpr IntegralT NUM = 69;
   list.push(NUM);
 
-  const DefaultT first = list[0];
+  const IntegralT first = list[0];
 
   THROW_IF(NUM != first, concatenate("Expected first item in list to be ", NUM, " but received ", first))
 
@@ -389,11 +376,11 @@ void Tests::Sorting<CLT>::sort() const {
   performTask("Pushing or using the RNG");
   static constexpr int ITERATIONS = 300;
   for (int i = 0; i < ITERATIONS; ++i) {
-    list.push(rng(std::numeric_limits<DefaultT>::min(), std::numeric_limits<DefaultT>::max()));
+    list.push(rng(std::numeric_limits<IntegralT>::min(), std::numeric_limits<IntegralT>::max()));
   }
 
   performTask("Sorting");
-  list.template sort<std::less<DefaultT>, SortingAlgorithm>();
+  list.template sort<std::less<IntegralT>, SortingAlgorithm>();
 
   performTask("Indexing");
   int last = list[0];
@@ -452,7 +439,7 @@ void Tests::SlicesAndIterators<CLT>::operator()() const {
 
   performTask("Pushing");
   for (size_t i = 1; i <= MAX; ++i) {
-    chunkedList.push(static_cast<DefaultT>(i));
+    chunkedList.push(static_cast<IntegralT>(i));
   }
 
   const CLT &constListRef = chunkedList;
@@ -472,18 +459,18 @@ void Tests::SlicesAndIterators<CLT>::operator()() const {
     THROW_IF(slice != slice2, "");
 
     for (size_t index = 0; index < endOffset - startOffset; ++index) {
-      const DefaultT expected = static_cast<DefaultT>(startOffset + index + 1);
+      const IntegralT expected = static_cast<IntegralT>(startOffset + index + 1);
       THROW_IF(slice[index] != expected,
                (ordinalize(index) += " item in slice is not equal to ") += std::to_string(expected));
     }
 
-    DefaultT expected = static_cast<DefaultT>(startOffset + 1);
+    IntegralT expected = static_cast<IntegralT>(startOffset + 1);
     for (const int num : slice) {
       THROW_IF(num != expected, concatenate("Expected ", expected, " but received ", num))
       ++expected;
     }
 
-    const DefaultT expectedExpected = static_cast<DefaultT>(endOffset + 1);
+    const IntegralT expectedExpected = static_cast<IntegralT>(endOffset + 1);
     THROW_IF(expected != expectedExpected,
              concatenate("Expected 'expected' to be equal to ", expectedExpected, " but received ", expected));
   }
@@ -493,14 +480,14 @@ void Tests::SlicesAndIterators<CLT>::operator()() const {
     const size_t startIndex = rng(0, MAX - 2);
     const size_t endIndex = rng(startIndex, MAX - 1);
 
-    DefaultT expected = static_cast<DefaultT>(startIndex + 1);
+    IntegralT expected = static_cast<IntegralT>(startIndex + 1);
 
     for (auto slice = chunkedList.VARIANT_CODE(slice, get_slice)(startIndex, endIndex); auto item : slice) {
       THROW_IF(item != expected, concatenate("Expected item to be equal to ", expected, " but received ", item));
       ++expected;
     }
 
-    const DefaultT expectedExpected = static_cast<DefaultT>(endIndex + 1);
+    const IntegralT expectedExpected = static_cast<IntegralT>(endIndex + 1);
     THROW_IF(expected != expectedExpected,
              concatenate("Expected 'expected' to be equal to ", expectedExpected, " but got ", expected))
   }
@@ -549,7 +536,7 @@ void Tests::SlicesAndIterators<CLT>::operator()() const {
       auto &chunkRef = *chunkIt;
       performTask("Chunk indexing");
       for (size_t i = 0; i < chunkRef.size(); ++i) {
-        DefaultT data = chunkRef[i];
+        IntegralT data = chunkRef[i];
         THROW_IF(data != tracker, concatenate("Invalid number; expected ", tracker, " but received ", data))
         ++tracker;
       }

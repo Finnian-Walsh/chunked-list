@@ -77,8 +77,8 @@ inline bool TestData::sourceIsNull() const { return nullSource; }
 
 inline bool TestData::taskIsNull() const { return nullTask; }
 
-template<template<typename> typename Functor, template<typename, size_t, typename> typename ChunkedListType, size_t ChunkSize = 2,
-         size_t FinalChunkSize = 16>
+template<template<typename> typename Functor, template<typename, size_t, typename> typename ChunkedListType,
+         size_t ChunkSize = 1, size_t FinalChunkSize = 16>
 void TestUtility::callFunction() {
   using TestCaller = Tests::Test<ChunkedListType, Functor>;
   const char *testName = TestCaller{}.name;
@@ -162,8 +162,8 @@ std::string TestUtility::ordinalize(Number n) {
 template<template<typename, size_t, typename> typename ChunkedListType, template<typename> typename Functor>
 template<size_t ChunkSize, size_t FinalChunkSize>
 void Tests::Test<ChunkedListType, Functor>::secondaryCall(const size_t testNumber) const {
-  testData.setSource(std::move(concatenate("Test ", testNumber)));
-  Functor<ChunkedListType<DefaultT, ChunkSize, CustomAllocator<DefaultT>>>{}();
+  testData.setSource(concatenate("Test ", testNumber));
+  Functor<ChunkedListType<IntegralT, ChunkSize, CustomAllocator<IntegralT>>>{}();
 
   if constexpr (FinalChunkSize > ChunkSize) {
     secondaryCall<ChunkSize + 1, FinalChunkSize>(testNumber + 1);
@@ -175,7 +175,7 @@ template<size_t ChunkSize, size_t FinalChunkSize>
   requires(FinalChunkSize >= ChunkSize)
 void Tests::Test<ChunkedListType, Functor>::call() const {
   testData.setSource("Test 1");
-  Functor<ChunkedListType<DefaultT, ChunkSize, CustomAllocator<DefaultT>>>{}();
+  Functor<ChunkedListType<IntegralT, ChunkSize, CustomAllocator<IntegralT>>>{}();
 
   if constexpr (FinalChunkSize > ChunkSize) {
     secondaryCall<ChunkSize + 1, FinalChunkSize>(2);
