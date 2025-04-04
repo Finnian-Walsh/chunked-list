@@ -3,6 +3,7 @@
 #include "TestUtility.hpp"
 #include "chunked-list/ChunkedListAccessor.hpp"
 
+#include <chrono>
 #include <cstdlib>
 #include <list>
 #include <memory>
@@ -38,13 +39,6 @@ inline TestError::TestError(std::string &&message) : message{std::move(message)}
 inline TestError::TestError(const std::string &message) : message{message} {}
 
 inline const char *TestError::what() const noexcept { return message.c_str(); }
-
-template<typename... Args>
-std::string TestUtility::NoMonitor_concatenate(Args &&...args) {
-  std::string s = concatenate(std::forward<Args>(args)...);
-
-  return concatenate(std::forward<Args>(args)...);
-}
 
 inline TestData::TestData(const char *str) : source{str}, nullSource{false} {}
 
@@ -83,7 +77,7 @@ inline bool TestData::sourceIsNull() const { return nullSource; }
 
 inline bool TestData::taskIsNull() const { return nullTask; }
 
-template<template<typename> typename Functor, template<typename, size_t> typename ChunkedListType, size_t ChunkSize = 1,
+template<template<typename> typename Functor, template<typename, size_t, typename> typename ChunkedListType, size_t ChunkSize = 2,
          size_t FinalChunkSize = 16>
 void TestUtility::callFunction() {
   using TestCaller = Tests::Test<ChunkedListType, Functor>;
@@ -92,18 +86,52 @@ void TestUtility::callFunction() {
   ++testNumber;
   std::cout << "Test " << testNumber << ": " << testName << '\n';
 
+  namespace chrono = std::chrono;
+
+  using chrono::high_resolution_clock;
+  using chrono::time_point;
+
+  time_point<high_resolution_clock> start, end;
+
   try {
     testData.newTest(testName);
+
+    start = high_resolution_clock::now();
     TestCaller{}.template call<ChunkSize, FinalChunkSize>();
-  } catch (const TestError &) {
-    throw;
+    end = high_resolution_clock::now();
   } catch (const std::exception &e) {
     throw std::runtime_error(
       concatenate("Call to ", testName, " failed\nSource: ", testData.sourceIsNull() ? "NULL" : testData.getSource(),
                   "\nTask: ", testData.taskIsNull() ? "NULL" : testData.getTask(), "\nError: ", e.what()));
   }
 
-  std::cout << "Test " << testNumber << " successful\n" << std::endl;
+  if (!allocatedSet.empty()) {
+    std::ostringstream leakedMemoryAddresses;
+
+    for (const auto address : allocatedSet) {
+      leakedMemoryAddresses << address << '\n';
+    }
+
+    throw TestError{concatenate("Memory leaked after calling ", testName, ":\n", leakedMemoryAddresses)};
+  }
+
+  std::cout << "Test " << testNumber << " successful (";
+
+  using chrono::duration_cast;
+
+  const auto executionTime = end - start;
+
+  if (const auto msDuration = duration_cast<chrono::milliseconds>(executionTime); msDuration.count() < 10) {
+    if (const auto usDuration = duration_cast<chrono::microseconds>(executionTime); usDuration.count() < 10) {
+      std::cout << duration_cast<chrono::nanoseconds>(executionTime);
+    } else {
+      std::cout << usDuration;
+    }
+  } else {
+    std::cout << msDuration;
+  }
+
+  std::cout << ")\n" << std::endl;
 }
 
 inline void TestUtility::performTask(const char *taskName, const int logLevel) {
@@ -131,23 +159,23 @@ std::string TestUtility::ordinalize(Number n) {
   }
 }
 
-template<template<typename, size_t> typename ChunkedListType, template<typename> typename Functor>
+template<template<typename, size_t, typename> typename ChunkedListType, template<typename> typename Functor>
 template<size_t ChunkSize, size_t FinalChunkSize>
 void Tests::Test<ChunkedListType, Functor>::secondaryCall(const size_t testNumber) const {
   testData.setSource(std::move(concatenate("Test ", testNumber)));
-  Functor<ChunkedListType<DefaultT, ChunkSize>>{}();
+  Functor<ChunkedListType<DefaultT, ChunkSize, CustomAllocator<DefaultT>>>{}();
 
   if constexpr (FinalChunkSize > ChunkSize) {
     secondaryCall<ChunkSize + 1, FinalChunkSize>(testNumber + 1);
   }
 }
 
-template<template<typename, size_t> typename ChunkedListType, template<typename> typename Functor>
+template<template<typename, size_t, typename> typename ChunkedListType, template<typename> typename Functor>
 template<size_t ChunkSize, size_t FinalChunkSize>
   requires(FinalChunkSize >= ChunkSize)
 void Tests::Test<ChunkedListType, Functor>::call() const {
   testData.setSource("Test 1");
-  Functor<ChunkedListType<DefaultT, ChunkSize>>{}();
+  Functor<ChunkedListType<DefaultT, ChunkSize, CustomAllocator<DefaultT>>>{}();
 
   if constexpr (FinalChunkSize > ChunkSize) {
     secondaryCall<ChunkSize + 1, FinalChunkSize>(2);

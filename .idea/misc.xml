@@ -6,4 +6,5 @@
   <component name="CMakeWorkspace" PROJECT_DIR="$PROJECT_DIR$/Test">
     <contentRoot DIR="$PROJECT_DIR$" />
   </component>
+  <component name="WestSettings">{}</component>
 </project>

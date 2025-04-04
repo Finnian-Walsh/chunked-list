@@ -3,7 +3,7 @@
 #include "ChunkedList.hpp"
 
 namespace chunked_list {
-  template<typename T, size_t Chunk_Size = 32>
+  template<typename T, size_t Chunk_Size = 32, typename Allocator = std::allocator<T>>
   class Chunked_List final : ChunkedList<T, Chunk_Size> {
       using derived_chunked_list = ChunkedList<T, Chunk_Size>;
 
@@ -13,6 +13,8 @@ namespace chunked_list {
       using derived_chunked_list::value_type;
 
       using derived_chunked_list::chunk_size;
+
+      using derived_chunked_list::allocator_type;
 
       using chunk_iterator = typename derived_chunked_list::ChunkIterator;
 
@@ -59,9 +61,11 @@ namespace chunked_list {
       using derived_chunked_list::pop;
 
       /**
-       * @brief Pops the back (most recent) Chunk from the ChunkedList
+       * @copybrief derived_chunked_list::popChunk
        */
       void pop_chunk();
+
+      using derived_chunked_list::clear;
 
       using derived_chunked_list::sort;
 
