@@ -13,9 +13,13 @@ int main() {
 
   callFunction<Initialization, ChunkedList>();
 
-  callFunction<Edges, ChunkedList>();
+  callFunction<Faces, ChunkedList>();
 
-  callFunction<Insertion, ChunkedList>();
+  callFunction<Stacking, ChunkedList>();
+
+  callFunction<Iterators, ChunkedList>();
+
+  callFunction<Clearing, ChunkedList>();
 
   callFunction<Sorting, ChunkedList>();
 

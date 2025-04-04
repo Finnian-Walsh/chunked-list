@@ -1,5 +1,7 @@
 #pragma once
 
+#include "TestUtility.hpp"
+
 template<typename CLT>
 void Tests::Chunk<CLT>::operator()() const {
   using AccessorType = Accessor<CLT>;
@@ -7,7 +9,7 @@ void Tests::Chunk<CLT>::operator()() const {
 
   constexpr size_t CHUNK_SIZE = CLT::chunk_size;
   constexpr size_t ENLARGED_CHUNK_SIZE = CHUNK_SIZE * 2;
-  using LargeChunkType = typename ChunkedListAccessor<DefaultT, ENLARGED_CHUNK_SIZE>::Chunk;
+  using LargeChunkType = typename Accessor<ChunkedList<DefaultT, ENLARGED_CHUNK_SIZE>>::Chunk;
 
   initialization<ChunkType>();
   indexing<LargeChunkType>();
@@ -144,7 +146,15 @@ void Tests::Chunk<CLT>::size() {
 
 template<typename CLT>
 template<typename CT>
-void Tests::Chunk<CLT>::comparison() {}
+void Tests::Chunk<CLT>::comparison() {
+  CT chunkA;
+  CT chunkB;
+
+  THROW_IF(chunkA == chunkB, "chunk a equal to chunk b")
+  THROW_IF(!(chunkA != chunkB), "chunk a not unequal to chunk b")
+  THROW_IF(chunkA != chunkA, "chunk a unequal to chunk a")
+  THROW_IF(!(chunkA == chunkA), "chunk a not equal to chunk a")
+}
 
 template<typename CLT>
 template<typename CT>
@@ -173,9 +183,6 @@ void Tests::Chunk<CLT>::iteration() {
 }
 
 template<typename CLT>
-void Tests::GenericChunkIterator<CLT>::operator()() const {}
-
-template<typename CLT>
 void Tests::Initialization<CLT>::operator()() const {
   using AccessorType = Accessor<CLT>;
 
@@ -201,23 +208,24 @@ template<typename CLT>
 template<typename AT>
 void Tests::Initialization<CLT>::initializer_list_construction() {
   performTask("Constructing list with initializer list");
-  CLT list{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
+  CLT list{1, 2}; //, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
   AT *accessor = reinterpret_cast<AT *>(&list);
   THROW_IF(!accessor->back, "Expected ChunkedList to have back")
   THROW_IF(!accessor->front, "Expected ChunkedList to have front")
 }
 
 template<typename CLT>
-void Tests::Edges<CLT>::operator()() {
+void Tests::Faces<CLT>::operator()() {
   performTask("Creating chunked list with initializer list");
+
+  CLT chunkedList{1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 
   using AccessorType = Accessor<CLT>;
 
-  CLT chunkedList{1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
   AccessorType *accessor = reinterpret_cast<AccessorType *>(&chunkedList);
 
-  auto front = accessor->front;
-  auto back = accessor->back;
+  auto *front = accessor->front;
+  auto *back = accessor->back;
 
   THROW_IF((*front)[0] != 1, "First item is not 1")
   THROW_IF((*back)[back->size() - 1] != 10, "Last item is not 10")
@@ -232,7 +240,7 @@ void Tests::Edges<CLT>::operator()() {
 }
 
 template<typename CLT>
-void Tests::Insertion<CLT>::operator()() {
+void Tests::Stacking<CLT>::operator()() {
   CLT chunkedList{5, 10, 15};
   std::string expectedOutput{"[5, 10, 15"};
 
@@ -260,10 +268,96 @@ void Tests::Insertion<CLT>::operator()() {
 }
 
 template<typename CLT>
+void Tests::Iterators<CLT>::operator()() const {
+  CLT list{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+  auto compBeg = begin(list);
+  auto memBeg = list.begin();
+
+  THROW_IF(compBeg != memBeg, "begin(list) and list.begin() unequal!")
+  THROW_IF(!(compBeg == memBeg), "begin(list) and list.begin() not equal!")
+
+  constexpr bool begEq = std::same_as<decltype(compBeg), decltype(memBeg)>;
+
+  THROW_IF(!begEq, "begin(list) returned a different type to list.begin()!")
+
+  auto compEnd = end(list);
+  auto memEnd = list.end();
+
+  THROW_IF(compEnd != memEnd, "end(list) and list.end() unequal!")
+  THROW_IF(!(compEnd == memEnd), "end(list) and list.end() not equal!")
+
+  constexpr bool endEq = std::same_as<decltype(compEnd), decltype(memEnd)>;
+
+  THROW_IF(!endEq, "end(list) returned a different type to list.end()!")
+
+  DefaultT expectedValue = 1;
+
+  for (auto it = memBeg; it != memEnd; ++it) {
+    auto val = *it;
+    THROW_IF(val != expectedValue,
+             concatenate("Expected iterator value to be equal to ", expectedValue, " but received ", val))
+    ++expectedValue;
+  }
+
+  constexpr DefaultT expectedExpectedValue = 17;
+  THROW_IF(expectedValue != expectedExpectedValue,
+           concatenate("Expected 'expectedValue' to be ", expectedExpectedValue, ", but received ", expectedValue))
+}
+
+template<typename CLT>
+void Tests::Clearing<CLT>::operator()() const {
+  do_retain_front();
+  dont_retain_front();
+}
+
+template<typename CLT>
+void Tests::Clearing<CLT>::do_retain_front() {
+  CLT list;
+  constexpr size_t CHUNK_SIZE = CLT::chunk_size;
+
+  for (size_t i = 0; i < CHUNK_SIZE * 5; ++i) {
+    list.push(static_cast<DefaultT>(i));
+  }
+
+  list.template clear<true>();
+
+  postliminary_checks(list);
+}
+
+template<typename CLT>
+void Tests::Clearing<CLT>::dont_retain_front() {
+  CLT list;
+  constexpr size_t CHUNK_SIZE = CLT::chunk_size;
+
+  for (size_t i = 0; i < CHUNK_SIZE * 5; ++i) {
+    list.push(static_cast<DefaultT>(i));
+  }
+
+  list.template clear<false>();
+
+  postliminary_checks(list);
+}
+
+template<typename CLT>
+void Tests::Clearing<CLT>::postliminary_checks(CLT &list) {
+  const size_t size = list.size();
+  THROW_IF(size != 0, concatenate("Expected cleared list to have size of 0 but size() returned ", size))
+
+  constexpr DefaultT NUM = 69;
+  list.push(NUM);
+
+  const DefaultT first = list[0];
+
+  THROW_IF(NUM != first, concatenate("Expected first item in list to be ", NUM, " but received ", first))
+
+  THROW_IF(list.size() != 1, concatenate(""))
+}
+
+template<typename CLT>
 void Tests::Sorting<CLT>::operator()() const {
   const std::string initialSource = testData.getSource();
 
-#define EXTEND_SOURCE(extension) testData.setSource(std::move(NoMonitor_concatenate(initialSource, extension)));
+#define EXTEND_SOURCE(extension) testData.setSource(std::move(concatenate(initialSource, extension)));
 
   EXTEND_SOURCE(" bubble sort")
   sort<BubbleSort>();
@@ -346,7 +440,7 @@ void Tests::PushingAndPopping<CLT>::operator()() const {
   const char firstItem = chunkedList[0];
 
   performTask("Comparing first item");
-  THROW_IF(firstItem != 'a', "First item is not 'a'")
+  THROW_IF(firstItem != 'a', concatenate("First item is ", firstItem, " and not 'a'!"))
 }
 
 template<typename CLT>

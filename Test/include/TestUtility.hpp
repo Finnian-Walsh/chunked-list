@@ -1,5 +1,7 @@
 #pragma once
 
+#include <chrono>
+#include <new>
 #include <random>
 #include <type_traits>
 #include <unistd.h>
@@ -12,9 +14,28 @@
 using namespace chunked_list;
 using namespace utility;
 
-#define BEGIN std::cout << "Starting tests..." << std::endl;
+#define BEGIN                                                                                                          \
+  std::cout << "Starting tests..." << std::endl;                                                                       \
+  namespace chrono = std::chrono;                                                                                      \
+  using chrono::high_resolution_clock;                                                                                 \
+  const auto start = high_resolution_clock::now();
 #define SUCCESS                                                                                                        \
-  std::cout << "All " << testNumber << " tests have been ran." << std::endl;                                           \
+  std::cout << "All " << testNumber << " tests have completed in ";                                                    \
+  const auto end = high_resolution_clock::now();                                                                       \
+  const auto executionTime = end - start;                                                                              \
+  using chrono::duration_cast;                                                                                         \
+  if (const auto sDuration = duration_cast<chrono::seconds>(executionTime);                                            \
+      sDuration < static_cast<decltype(sDuration)>(10)) {                                                              \
+    if (const auto msDuration = duration_cast<chrono::milliseconds>(executionTime);                                    \
+        msDuration < static_cast<decltype(msDuration)>(10)) {                                                          \
+      std::cout << duration_cast<chrono::microseconds>(executionTime);                                                 \
+    } else {                                                                                                           \
+      std::cout << msDuration;                                                                                         \
+    }                                                                                                                  \
+  } else {                                                                                                             \
+    std::cout << sDuration;                                                                                            \
+  }                                                                                                                    \
+  std::cout << '.' << std::endl;                                                                                       \
   return EXIT_SUCCESS;
 #define THROW_IF(condition, str)                                                                                       \
   if (condition) {                                                                                                     \
@@ -34,7 +55,9 @@ using namespace utility;
 #endif
 
 namespace TestUtility {
-  template<typename T>
+  inline std::unordered_set<void *> allocatedSet{};
+
+  template<typename T, bool Output = false>
   class MallocAllocator {
     public:
       using value_type = T;
@@ -46,9 +69,31 @@ namespace TestUtility {
 
       ~MallocAllocator() = default;
 
-      static T *allocate(const std::size_t n) { return static_cast<T *>(malloc(n * sizeof(T))); }
+      static T *allocate(const std::size_t n) {
+        T *memory = static_cast<T *>(std::malloc(n * sizeof(T)));
 
-      static void deallocate(T *ptr, const std::size_t) { free(ptr); }
+        allocatedSet.insert(memory);
+
+        if constexpr (Output) {
+          std::cout << "Allocated memory " << memory << std::endl;
+        }
+
+        return memory;
+      }
+
+      static void deallocate(T *ptr, const std::size_t) {
+        if (!allocatedSet.contains(ptr)) {
+          throw std::runtime_error(concatenate("Double free or allocation mismatch: ", ptr, "!"));
+        }
+
+        if constexpr (Output) {
+          std::cout << "Freeing " << ptr << std::endl;
+        }
+
+        allocatedSet.erase(ptr);
+
+        std::free(ptr);
+      }
 
       template<typename U, typename... Args>
       static void construct(U *ptr, Args &&...args) {
@@ -60,6 +105,12 @@ namespace TestUtility {
         ptr->~U();
       }
   };
+
+  template<typename T>
+  class CustomAllocator : public MallocAllocator<T> {};
+
+  template<typename T>
+  class CustomLogAllocator : public MallocAllocator<T, true> {};
 
 #ifdef LOG_LEVEL
   constexpr inline int LogLevel = LOG_LEVEL;
@@ -116,9 +167,6 @@ namespace TestUtility {
   template<typename T>
   concept string_compatible = string_initializable<T> || string_convertible<T> || to_stringable<T> || insertable<T>;
 
-  template<typename... Ts>
-  std::string NoMonitor_concatenate(Ts &&...args);
-
   inline class TestData {
       std::string test{};
       std::string source{};
@@ -155,8 +203,8 @@ namespace TestUtility {
       bool taskIsNull() const;
   } testData;
 
-  template<template<typename> typename Functor, template<typename, size_t> typename ChunkedListType, size_t ChunkSize,
-           size_t FinalChunkSize>
+  template<template<typename> typename Functor, template<typename, size_t, typename> typename ChunkedListType,
+           size_t ChunkSize, size_t FinalChunkSize>
   void callFunction();
 
   void performTask(const char *taskName, int logLevel = 10);
@@ -171,7 +219,7 @@ namespace TestUtility {
     static constexpr size_t DefaultChunkSize = 16;
     static_assert(DefaultChunkSize > 0, "DefaultChunkSize must be greater than 0!");
 
-    template<template<typename, size_t> typename ChunkedListType, template<typename> typename Functor>
+    template<template<typename, size_t, typename> typename ChunkedListType, template<typename> typename Functor>
     class Test {
         template<size_t ChunkSize, size_t FinalChunkSize>
         void secondaryCall(size_t testNumber) const;
@@ -181,7 +229,7 @@ namespace TestUtility {
           requires(FinalChunkSize >= ChunkSize)
         void call() const;
 
-        const char *name = Functor<ChunkedListType<DefaultT, DefaultChunkSize>>{}.name;
+        const char *name = Functor<ChunkedListType<DefaultT, DefaultChunkSize, MallocAllocator<DefaultT>>>{}.name;
     };
 
     template<typename>
@@ -213,13 +261,6 @@ namespace TestUtility {
     };
 
     template<typename>
-    struct GenericChunkIterator {
-        const char *name = "Generic Chunk Iterators";
-
-        void operator()() const;
-    };
-
-    template<typename>
     struct Initialization {
         const char *name = "Initialization";
 
@@ -233,17 +274,37 @@ namespace TestUtility {
     };
 
     template<typename>
-    struct Edges {
-        const char *name = "List edges";
+    struct Faces {
+        const char *name = "List faces";
 
         void operator()();
     };
 
     template<typename>
-    struct Insertion {
-        const char *name = "Insertion";
+    struct Stacking {
+        const char *name = "Stacking: pushing & popping";
 
         void operator()();
+    };
+
+    template<typename>
+    struct Iterators {
+        const char *name = "Iterators";
+
+        void operator()() const;
+    };
+
+    template<typename CLT>
+    struct Clearing {
+        const char *name = "Clearing";
+
+        void operator()() const;
+
+        static void do_retain_front();
+
+        static void dont_retain_front();
+
+        static void postliminary_checks(CLT &list);
     };
 
     template<typename>
