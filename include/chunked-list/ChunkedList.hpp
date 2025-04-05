@@ -48,6 +48,14 @@ namespace chunked_list {
       class GenericIterator;
 
       class Chunk {
+          Allocator valueAllocator;
+
+          using ArrayAllocator = typename AllocatorTraits::template rebind_alloc<T[ChunkSize]>;
+
+          using ArrayAllocatorTraits = std::allocator_traits<ArrayAllocator>;
+
+          ArrayAllocator arrayAllocator;
+
           T data[ChunkSize]{};
 
           size_t nextIndex{0};
@@ -82,8 +90,10 @@ namespace chunked_list {
             requires utility::can_construct<T, Args...>
           void emplace(Args &&...args);
 
+          template<bool DestroyValue = true>
           void pop();
 
+          template<bool DestroyData = true>
           void clear();
 
           /**
@@ -122,8 +132,6 @@ namespace chunked_list {
           Iterator end();
 
           ConstIterator end() const;
-
-          void getData(std::string &str) const;
       };
 
       using ChunkAllocator = typename AllocatorTraits::template rebind_alloc<Chunk>;
@@ -276,6 +284,16 @@ namespace chunked_list {
            * @return A const pointer to the chunk stored within the iterator, of type ChunkT
            */
           const ChunkT *operator->() const;
+
+          /**
+           * @brief Allows the iterator to be converted to a chunk pointer easily
+           */
+          operator ChunkT *();
+
+          /**
+           * @brief Allows the iterator to be converted to a const chunk pointer easily
+           */
+          operator const ChunkT *() const;
       };
 
       /**
@@ -516,10 +534,6 @@ namespace chunked_list {
           IteratorType end();
 
           ConstIteratorType end() const;
-
-          // void expandLeft(size_t distance);
-
-          // void expandRight(size_t distance);
       };
 
     public:
@@ -713,8 +727,24 @@ namespace chunked_list {
 
       /**
        * @brief Pops the most recent item from the back chunk of the chunked list
+       * @tparam DestroyValue Whether the value that is popped should be destroyed
        */
+      template<bool DestroyValue = true>
       void pop();
+
+      /**
+       * @brief Erases an item from the chunked list using an iterator
+       * @param iterator The iterator to be erased
+       * @return An iterator referencing the item after the one erased
+       */
+      Iterator erase(Iterator iterator);
+
+      /**
+       * @brief Erases a chunk from the chunked list using a chunk iterator
+       * @param iterator the chunk iterator to be erased
+       * @return A chunk iterator referencing the chunk after the one erased
+       */
+      ChunkIterator erase(ChunkIterator iterator);
 
       /**
        * @brief Pops the back (most recent) chunk from the chunked list
@@ -758,8 +788,7 @@ namespace chunked_list {
       /**
        * @brief Returns whether the given chunked list is unequal to the other, regarding the stored elements
        * @param other The chunked list to compare the given one against for inequality
-       * @return Whether at least one element is unequal between both containers or the containers are of different
-       * sizes
+       * @return Whether at least one element is unequal between both lists or the lists are of different sizes
        */
       bool operator!=(const ChunkedList &other) const;
 
@@ -790,7 +819,8 @@ namespace chunked_list {
 /**
  * @brief Returns an Iterator to the first element in the given chunked list
  * @tparam T The type stored in the chunked list
- * @tparam ChunkSize The size of each chunk within the chunked list
+ * @tparam ChunkSize The size of each chunk within the ch
+ * @tparam Allocator The allocator used for the allocation and deallocation of data
  * @param chunkedList A reference to the container object
  * @returns An Iterator referencing the first element in the container
  */
@@ -802,6 +832,7 @@ begin(chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
  * @brief Returns a const iterator to the first element of the given chunked list
  * @tparam T The type stored in the chunked list
  * @tparam ChunkSize The size of each chunk within the chunked list
+ * @tparam Allocator The allocator used for the allocation and deallocation of data
  * @param chunkedList A const reference to the chunked list object
  * @returns A const iterator referencing the first element of the chunked list
  */
@@ -813,6 +844,7 @@ begin(const chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
  * @brief Returns a const iterator to the end element of the given chunked list
  * @tparam T The type stored in the chunked list
  * @tparam ChunkSize The size of each chunk within the container
+ * @tparam Allocator The allocator used for the allocation and deallocation of data
  * @param chunkedList A reference to the chunked list object
  * @returns A const iterator referencing the end element of the chunked list
  */
@@ -824,6 +856,7 @@ end(chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
  * @brief Returns an iterator referencing the end element of the given chunked list
  * @tparam T The type stored in the container
  * @tparam ChunkSize The size of each chunk within the chunked list
+ * @tparam Allocator The allocator used for the allocation and deallocation of data
  * @param chunkedList A const reference to the chunked list object
  * @returns An iterator referencing the end element of the chunked list
  */
@@ -835,6 +868,7 @@ end(const chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
  * @brief Returns an iterator to the first element of the given chunk
  * @tparam T The type stored in the chunked list
  * @tparam ChunkSize The size of each chunk within the chunked list
+ * @tparam Allocator The allocator used for the allocation and deallocation of data
  * @param chunk A reference to the chunk object
  * @return An iterator referencing the first element of the chunk
  */
@@ -846,6 +880,7 @@ begin(typename chunked_list::ChunkedList<T, ChunkSize>::Chunk &chunk) noexcept;
  * @brief Returns a const iterator to the first element of the given chunk
  * @tparam T The type stored in the chunked list
  * @tparam ChunkSize The size of each chunk within the chunked list
+ * @tparam Allocator The allocator used for the allocation and deallocation of data
  * @param chunk A const reference to the chunk object
  * @return A const iterator referencing the first element of the chunk
  */
@@ -857,6 +892,7 @@ begin(const typename chunked_list::ChunkedList<T, ChunkSize>::Chunk &chunk) noex
  * @brief Returns an iterator to the end element of the given chunk
  * @tparam T The type stored in the chunked list
  * @tparam ChunkSize The size of each chunk within the chunked list
+ * @tparam Allocator The allocator used for the allocation and deallocation of data
  * @param chunk A reference to the chunk object
  * @return An iterator referencing the end element of the chunk
  */
@@ -868,6 +904,7 @@ end(typename chunked_list::ChunkedList<T, ChunkSize>::Chunk &chunk) noexcept;
  * @brief Returns a const iterator to the first element of the given chunk
  * @tparam T The type stored in the chunked list
  * @tparam ChunkSize The size of each chunk within the chunked list
+ * @tparam Allocator The allocator used for the allocation and deallocation of data
  * @param chunk A const reference to the chunk object
  * @return A const iterator referencing the end element of the chunk
  */

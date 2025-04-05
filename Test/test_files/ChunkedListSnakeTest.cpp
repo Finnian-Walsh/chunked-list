@@ -28,7 +28,7 @@ int main() {
 
   callFunction<PushingAndPopping, Chunked_List>();
 
-  callFunction<EqualityAndInequality, Chunked_List>();
+  callFunction<ListComparison, Chunked_List>();
 
   callFunction<ConcatenationAndIndexing, Chunked_List>();
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <complex>
 #include <new>
 #include <random>
 #include <type_traits>
@@ -97,7 +98,7 @@ namespace TestUtility {
 
       template<typename U, typename... Args>
       static void construct(U *ptr, Args &&...args) {
-        new (ptr) U{std::forward<Args>(args)...};
+        new (ptr) U(std::forward<Args>(args)...);
       }
 
       template<typename U>
@@ -218,6 +219,8 @@ namespace TestUtility {
 
     using StringT = std::basic_string<char, std::char_traits<char>, CustomAllocator<char>>;
 
+    using ComplexT = std::complex<IntegralT>;
+
     static constexpr size_t DefaultChunkSize = 16;
     static_assert(DefaultChunkSize > 0, "DefaultChunkSize must be greater than 0!");
 
@@ -335,8 +338,8 @@ namespace TestUtility {
     };
 
     template<typename>
-    struct EqualityAndInequality {
-        const char *name = "Equality and inequality";
+    struct ListComparison {
+        const char *name = "List comparison";
 
         void operator()() const;
     };

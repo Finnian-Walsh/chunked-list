@@ -81,7 +81,7 @@ namespace chunked_list {
   ChunkedList<T, ChunkSize, Allocator>::~ChunkedList() {
     do {
       Chunk *prev = back->prevChunk;
-      back->~Chunk();
+      ChunkAllocatorTraits::destroy(chunkAllocator, back);
       ChunkAllocatorTraits::deallocate(chunkAllocator, back, 1);
       back = prev;
     } while (back);
@@ -233,18 +233,59 @@ namespace chunked_list {
   }
 
   template<typename T, size_t ChunkSize, typename Allocator>
+  template<bool DestroyValue>
   void ChunkedList<T, ChunkSize, Allocator>::pop() {
     if (back->empty()) {
       popChunk();
     } else {
-      back->pop();
+      back->template pop<DestroyValue>();
     }
+  }
+
+  template<typename T, size_t ChunkSize, typename Allocator>
+  typename ChunkedList<T, ChunkSize, Allocator>::Iterator
+  ChunkedList<T, ChunkSize, Allocator>::erase(Iterator iterator) {
+    Iterator nextIt = ++iterator;
+    Iterator firstIt = iterator, secondIt = nextIt, endIt = end();
+
+    while (secondIt != endIt) {
+      *firstIt = std::move(*secondIt);
+      firstIt = secondIt;
+      ++secondIt;
+    }
+
+    return nextIt;
+  }
+
+  template<typename T, size_t ChunkSize, typename Allocator>
+  typename ChunkedList<T, ChunkSize, Allocator>::ChunkIterator
+  ChunkedList<T, ChunkSize, Allocator>::erase(ChunkIterator iterator) {
+    Chunk *prev = iterator->prevChunk;
+    Chunk *next = iterator->nextChunk;
+
+    ChunkAllocatorTraits::destroy(chunkAllocator, iterator);
+
+    if (prev) {
+      if (next) {
+        prev->nextChunk = next;
+        next->prevChunk = prev;
+      } else {
+        back = prev;
+      }
+    } else if (next) {
+      front = next;
+
+    } else {
+      ChunkAllocatorTraits::construct(chunkAllocator, iterator);
+    }
+
+    return ChunkIterator{next};
   }
 
   template<typename T, size_t ChunkSize, typename Allocator>
   void ChunkedList<T, ChunkSize, Allocator>::popChunk() {
     if (Chunk *prev = back->prevChunk; prev) {
-      back->~Chunk();
+      ChunkAllocatorTraits::destroy(chunkAllocator, back);
       ChunkAllocatorTraits::deallocate(chunkAllocator, back, 1);
       back = prev;
       --chunkCount;
@@ -259,13 +300,13 @@ namespace chunked_list {
   void ChunkedList<T, ChunkSize, Allocator>::clear() {
     while (back != front) {
       Chunk *prev = back->prevChunk;
-      back->~Chunk();
+      ChunkAllocatorTraits::destroy(chunkAllocator, back);
       ChunkAllocatorTraits::deallocate(chunkAllocator, back, 1);
       back = prev;
     }
 
     if constexpr (DestroyFront) {
-      front->~Chunk();
+      ChunkAllocatorTraits::destroy(chunkAllocator, front);
       ChunkAllocatorTraits::construct(chunkAllocator, front);
     } else {
       front->clear();

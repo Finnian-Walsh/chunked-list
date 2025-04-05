@@ -81,16 +81,4 @@ namespace chunked_list {
   ChunkedList<T, ChunkSize, Allocator>::GenericSlice<ChunkT, ValueT>::end() const {
     return endIterator;
   }
-
-  // template<typename T, size_t ChunkSize, typename Allocator>
-  // template<typename ChunkT, typename ValueT>
-  // void ChunkedList<T, ChunkSize, Allocator>::GenericSlice<ChunkT, ValueT>::expandLeft(const size_t distance) {
-  //   // implement this
-  // }
-  //
-  // template<typename T, size_t ChunkSize, typename Allocator>
-  // template<typename ChunkT, typename ValueT>
-  // void ChunkedList<T, ChunkSize, Allocator>::GenericSlice<ChunkT, ValueT>::expandRight(const size_t distance) {
-  //   // implement this
-  // }
 } // namespace chunked_list

@@ -8,7 +8,8 @@ namespace chunked_list {
       nextChunk{nextChunk}, prevChunk{prevChunk} {}
 
   template<typename T, size_t ChunkSize, typename Allocator>
-  ChunkedList<T, ChunkSize, Allocator>::Chunk::Chunk(const T *array, const size_t size, Chunk *prevChunk, Chunk *nextChunk) :
+  ChunkedList<T, ChunkSize, Allocator>::Chunk::Chunk(const T *array, const size_t size, Chunk *prevChunk,
+                                                     Chunk *nextChunk) :
       nextIndex{size}, nextChunk{nextChunk}, prevChunk{prevChunk} {
     for (size_t index = 0; index < size; ++index) {
       data[index] = std::move(array[index]);
@@ -29,22 +30,36 @@ namespace chunked_list {
   template<typename... Args>
     requires utility::can_construct<T, Args...>
   void ChunkedList<T, ChunkSize, Allocator>::Chunk::emplace(Args &&...args) {
-    data[nextIndex] = T{args...};
+    data[nextIndex] = std::move(T{args...});
     ++nextIndex;
   }
 
   template<typename T, size_t ChunkSize, typename Allocator>
+  template<bool DestroyValue>
   void ChunkedList<T, ChunkSize, Allocator>::Chunk::pop() {
     --nextIndex;
+
+    if constexpr (DestroyValue) {
+      T *value = data + nextIndex;
+      AllocatorTraits::destroy(valueAllocator, value);
+      AllocatorTraits::construct(valueAllocator, value);
+    }
   }
 
   template<typename T, size_t ChunkSize, typename Allocator>
+  template<bool DestroyData>
   void ChunkedList<T, ChunkSize, Allocator>::Chunk::clear() {
+    if constexpr (DestroyData) {
+      ArrayAllocatorTraits::destroy(arrayAllocator, data);
+      ArrayAllocatorTraits::construct(arrayAllocator, data);
+    }
+
     nextIndex = 0;
   }
 
   template<typename T, size_t ChunkSize, typename Allocator>
-  typename ChunkedList<T, ChunkSize, Allocator>::Chunk &ChunkedList<T, ChunkSize, Allocator>::Chunk::operator+(size_t offset) {
+  typename ChunkedList<T, ChunkSize, Allocator>::Chunk &
+  ChunkedList<T, ChunkSize, Allocator>::Chunk::operator+(size_t offset) {
     Chunk *chunk{this};
 
     for (; offset > 0; --offset)
@@ -54,7 +69,8 @@ namespace chunked_list {
   }
 
   template<typename T, size_t ChunkSize, typename Allocator>
-  typename ChunkedList<T, ChunkSize, Allocator>::Chunk &ChunkedList<T, ChunkSize, Allocator>::Chunk::operator-(const size_t offset) {
+  typename ChunkedList<T, ChunkSize, Allocator>::Chunk &
+  ChunkedList<T, ChunkSize, Allocator>::Chunk::operator-(const size_t offset) {
     Chunk *chunk{this};
 
     for (size_t i = 0; i < offset; ++i) {
@@ -116,8 +132,9 @@ namespace chunked_list {
   }
 
   template<typename T, size_t ChunkSize, typename Allocator>
-  typename ChunkedList<T, ChunkSize, Allocator>::Chunk::ConstIterator ChunkedList<T, ChunkSize, Allocator>::Chunk::begin() const {
-    return Iterator{this, 0};
+  typename ChunkedList<T, ChunkSize, Allocator>::Chunk::ConstIterator
+  ChunkedList<T, ChunkSize, Allocator>::Chunk::begin() const {
+    return ConstIterator{this, 0};
   }
 
   template<typename T, size_t ChunkSize, typename Allocator>
@@ -126,33 +143,9 @@ namespace chunked_list {
   }
 
   template<typename T, size_t ChunkSize, typename Allocator>
-  typename ChunkedList<T, ChunkSize, Allocator>::Chunk::ConstIterator ChunkedList<T, ChunkSize, Allocator>::Chunk::end() const {
-    return Iterator{this, nextIndex};
+  typename ChunkedList<T, ChunkSize, Allocator>::Chunk::ConstIterator
+  ChunkedList<T, ChunkSize, Allocator>::Chunk::end() const {
+    return ConstIterator{this, nextIndex};
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
-  void ChunkedList<T, ChunkSize, Allocator>::Chunk::getData(std::string &str) const {
-    std::ostringstream oss{};
-    oss << "ChunkedList<" << typeid(T).name() << ", " << std::to_string(ChunkSize) << ">::Chunk(nextIndex=" << nextIndex
-        << ", nextChunk=" << nextChunk << ", prevChunk = " << prevChunk;
-
-    if (empty()) {
-      goto end;
-    }
-    {
-      oss << ", data=[";
-
-      size_t index = 0;
-
-      for (; index < nextIndex - 1; ++index) {
-        oss << data[index] << ", ";
-      }
-
-      oss << data[index] << ']';
-    }
-
-  end:
-    oss << ')';
-    str = oss.str();
-  }
 } // namespace chunked_list

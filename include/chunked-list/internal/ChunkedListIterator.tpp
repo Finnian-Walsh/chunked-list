@@ -11,16 +11,18 @@ namespace chunked_list {
   template<typename ChunkT>
   template<typename ChunkIteratorT>
     requires utility::is_chunk_iterator<ChunkedList<T, ChunkSize, Allocator>, ChunkIteratorT>
-  ChunkedList<T, ChunkSize, Allocator>::GenericChunkIterator<ChunkT>::GenericChunkIterator(ChunkIteratorT chunkIterator) :
-      chunk{&*chunkIterator} {}
+  ChunkedList<T, ChunkSize, Allocator>::GenericChunkIterator<ChunkT>::GenericChunkIterator(
+    ChunkIteratorT chunkIterator) : chunk{chunkIterator} {}
 
   template<typename T, size_t ChunkSize, typename Allocator>
   template<typename ChunkT>
-  ChunkedList<T, ChunkSize, Allocator>::GenericChunkIterator<ChunkT>::GenericChunkIterator(ChunkT *chunkPtr) : chunk{chunkPtr} {}
+  ChunkedList<T, ChunkSize, Allocator>::GenericChunkIterator<ChunkT>::GenericChunkIterator(ChunkT *chunkPtr) :
+      chunk{chunkPtr} {}
 
   template<typename T, size_t ChunkSize, typename Allocator>
   template<typename ChunkT>
-  ChunkedList<T, ChunkSize, Allocator>::GenericChunkIterator<ChunkT>::GenericChunkIterator(ChunkT &chunkRef) : chunk{&chunkRef} {}
+  ChunkedList<T, ChunkSize, Allocator>::GenericChunkIterator<ChunkT>::GenericChunkIterator(ChunkT &chunkRef) :
+      chunk{&chunkRef} {}
 
   template<typename T, size_t ChunkSize, typename Allocator>
   template<typename ChunkT>
@@ -98,16 +100,18 @@ namespace chunked_list {
   template<typename ChunkT>
   template<typename ChunkIteratorT>
     requires utility::is_chunk_iterator<ChunkedList<T, ChunkSize, Allocator>, ChunkIteratorT>
-  bool ChunkedList<T, ChunkSize, Allocator>::GenericChunkIterator<ChunkT>::operator==(const ChunkIteratorT other) const {
-    return chunk == &*other;
+  bool
+  ChunkedList<T, ChunkSize, Allocator>::GenericChunkIterator<ChunkT>::operator==(const ChunkIteratorT other) const {
+    return chunk == other;
   }
 
   template<typename T, size_t ChunkSize, typename Allocator>
   template<typename ChunkT>
   template<typename ChunkIteratorT>
     requires utility::is_chunk_iterator<ChunkedList<T, ChunkSize, Allocator>, ChunkIteratorT>
-  bool ChunkedList<T, ChunkSize, Allocator>::GenericChunkIterator<ChunkT>::operator!=(const ChunkIteratorT other) const {
-    return chunk != &*other;
+  bool
+  ChunkedList<T, ChunkSize, Allocator>::GenericChunkIterator<ChunkT>::operator!=(const ChunkIteratorT other) const {
+    return chunk != other;
   }
 
   template<typename T, size_t ChunkSize, typename Allocator>
@@ -134,6 +138,18 @@ namespace chunked_list {
     return chunk;
   }
 
+  template<typename T, size_t ChunkSize, typename Allocator>
+  template<typename ChunkT>
+  ChunkedList<T, ChunkSize, Allocator>::GenericChunkIterator<ChunkT>::operator ChunkT *() {
+    return chunk;
+  }
+
+  template<typename T, size_t ChunkSize, typename Allocator>
+  template<typename ChunkT>
+  ChunkedList<T, ChunkSize, Allocator>::GenericChunkIterator<ChunkT>::operator const ChunkT *() const {
+    return chunk;
+  }
+
   // ---------------------------------------------------------------------------------------------------------------------
   // GenericIterator implementation
   // ---------------------------------------------------------------------------------------------------------------------
@@ -147,18 +163,20 @@ namespace chunked_list {
 
   template<typename T, size_t ChunkSize, typename Allocator>
   template<typename ChunkT, typename ValueT>
-  ChunkedList<T, ChunkSize, Allocator>::GenericIterator<ChunkT, ValueT>::GenericIterator(ChunkT *chunkPtr, const size_t index) :
+  ChunkedList<T, ChunkSize, Allocator>::GenericIterator<ChunkT, ValueT>::GenericIterator(ChunkT *chunkPtr,
+                                                                                         const size_t index) :
       chunkIterator{chunkPtr}, index(index) {}
 
   template<typename T, size_t ChunkSize, typename Allocator>
   template<typename ChunkT, typename ValueT>
-  ChunkedList<T, ChunkSize, Allocator>::GenericIterator<ChunkT, ValueT>::GenericIterator(ChunkT &chunkRef, const size_t index) :
+  ChunkedList<T, ChunkSize, Allocator>::GenericIterator<ChunkT, ValueT>::GenericIterator(ChunkT &chunkRef,
+                                                                                         const size_t index) :
       chunkIterator(&chunkRef), index(index) {}
 
   template<typename T, size_t ChunkSize, typename Allocator>
   template<typename ChunkT, typename ValueT>
   ChunkedList<T, ChunkSize, Allocator>::GenericIterator<ChunkT, ValueT>::GenericIterator(ChunkIteratorT chunkIterator,
-                                                                              const size_t index) :
+                                                                                         const size_t index) :
       chunkIterator{chunkIterator}, index(index) {}
 
   template<typename T, size_t ChunkSize, typename Allocator>
