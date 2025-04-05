@@ -51,7 +51,7 @@ template<typename T, size_t ChunkSize, typename Allocator>
 ChunkedList<T, ChunkSize, Allocator>::~ChunkedList() {
   do {
     Chunk *prev = back->prevChunk;
-    back->~Chunk();
+    ChunkAllocatorTraits::destroy(chunkAllocator, back);
     ChunkAllocatorTraits::deallocate(chunkAllocator, back, 1);
     back = prev;
   } while (back);
