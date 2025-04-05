@@ -85,7 +85,8 @@ namespace chunked_list {
     };
 
     template<typename T>
-    concept string_compatible = can_construct<std::string, T> || can_to_string<T> || can_stringify<T> || can_insert<std::ostringstream, T>;
+    concept string_compatible =
+      can_construct<std::string, T> || can_to_string<T> || can_stringify<T> || can_insert<std::ostringstream, T>;
 
     template<string_compatible T>
     std::string intoString(T value);
