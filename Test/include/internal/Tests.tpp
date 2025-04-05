@@ -7,13 +7,12 @@ void Tests::Chunk<CLT>::operator()() const {
   using AccessorType = Accessor<CLT>;
   using ChunkType = typename AccessorType::Chunk;
 
-  constexpr size_t CHUNK_SIZE = CLT::chunk_size;
-  constexpr size_t ENLARGED_CHUNK_SIZE = CHUNK_SIZE * 2;
-  using LargeChunkType = typename Accessor<ChunkedList<IntegralT, ENLARGED_CHUNK_SIZE>>::Chunk;
+  using ComplexChunkType =
+    typename ChunkedListAccessor<ComplexT, CLT::chunk_size * 2, typename CLT::allocator_type>::Chunk;
 
   initialization<ChunkType>();
-  indexing<LargeChunkType>();
-  stacking<ChunkType>();
+  indexing<ChunkType>();
+  stacking<ComplexChunkType>();
   arithmetic<ChunkType>();
   size<ChunkType>();
   comparison<ChunkType>();
@@ -55,11 +54,13 @@ void Tests::Chunk<CLT>::indexing() {
     vec.push_back(static_cast<IntegralT>(i));
   }
 
-  std::unique_ptr<LCT> chunk = std::make_unique<LCT>(vec.data(), vec.size());
+  LCT chunk{vec.data(), vec.size()};
 
   for (size_t i = 0; i < LCT::chunk_size; ++i) {
-    THROW_IF((*chunk)[i] != static_cast<IntegralT>(i),
-             concatenate("Expected ", ordinalize(i), " element of chunked list to be equal to ", i))
+    const std::string &&errMessage =
+      concatenate("Expected ", ordinalize(i), " element of chunked list to be equal to ", i);
+    THROW_IF(chunk[i] != vec[i], std::move(errMessage))
+    THROW_IF(chunk.at(i) != vec.at(i), std::move(errMessage))
   }
 }
 
@@ -70,15 +71,28 @@ void Tests::Chunk<CLT>::stacking() {
 
   constexpr size_t CHUNK_SIZE = CT::chunk_size;
 
+  constexpr size_t HALF_CHUNK_SIZE = CHUNK_SIZE / 2;
+
   CT chunk;
 
-  for (size_t i = 0; i < CHUNK_SIZE; ++i) {
-    chunk.push(static_cast<IntegralT>(i));
+  using ValueType = typename CT::value_type;
+
+  std::vector<ValueType> vec;
+
+  for (size_t i = 0; i < HALF_CHUNK_SIZE; ++i) {
+    const IntegralT num = static_cast<IntegralT>(i);
+    chunk.push({num, num});
+    vec.push_back({num, num});
+  }
+
+  for (size_t i = HALF_CHUNK_SIZE; i < CHUNK_SIZE; ++i) {
+    const IntegralT num = static_cast<IntegralT>(i);
+    chunk.emplace(num, num);
+    vec.emplace_back(num, num);
   }
 
   for (size_t i = 0; i < CHUNK_SIZE; ++i) {
-    const IntegralT item = chunk[i];
-    THROW_IF(static_cast<size_t>(item) != i, concatenate("Expected item to be equal to ", i))
+    THROW_IF(chunk[i] != vec[i], concatenate("Expected item to be equal to ", vec[i]))
   }
 }
 
@@ -87,17 +101,22 @@ template<typename CT>
 void Tests::Chunk<CLT>::arithmetic() {
   performTask("Chunk advancing");
 
-  CT *front = new CT{};
+  CustomAllocator<CT> allocator;
+
+  CT *front = allocator.allocate(1);
   CT *back = front;
+
+  allocator.construct(front);
 
   constexpr size_t RANGE = 3;
 
   // Allocation
 
   for (size_t i = 0; i < RANGE; ++i) {
-    CT *newBack = new CT{nullptr, 0, back};
-    back->nextChunk = newBack;
-    back = newBack;
+    CT *next = allocator.allocate(1);
+    allocator.construct(next, nullptr, 0, back);
+    back->nextChunk = next;
+    back = next;
   }
 
   CT *expectedBack = &((*front) + RANGE);
@@ -111,12 +130,14 @@ void Tests::Chunk<CLT>::arithmetic() {
   // Deallocation
 
   size_t counter{};
+
   do {
-    CT *newFront = front->nextChunk;
-    delete front;
-    front = newFront;
+    CT *prev = back->prevChunk;
+    allocator.destroy(back);
+    allocator.deallocate(back, 1);
+    back = prev;
     ++counter;
-  } while (front); // repeats RANGE + 1 times
+  } while (back); // repeats RANGE + 1 times
 
   constexpr size_t EXPECTED_DELETIONS = RANGE + 1;
   THROW_IF(counter != EXPECTED_DELETIONS,
@@ -139,9 +160,23 @@ void Tests::Chunk<CLT>::size() {
 
     CT chunk{vec.data(), vec.size()};
 
-    size_t csize = chunk.size();
-    THROW_IF(csize != load, concatenate("Expected chunk size to be equal to ", load, " but received ", csize))
+    const size_t chunkSize = chunk.size();
+    THROW_IF(chunkSize != load, concatenate("Expected chunk size to be equal to ", load, " but received ", chunk_size))
   }
+
+  CT chunk;
+
+  THROW_IF(!chunk.empty(), "Expected empty chunk to be empty")
+
+  for (size_t i = 0; i < chunk_size; ++i) {
+    chunk.emplace();
+  }
+
+  for (size_t i = 0; i < chunk_size; ++i) {
+    chunk.pop();
+  }
+
+  THROW_IF(!chunk.empty(), concatenate("Expected chunk to be empty, but its size is ", chunk.size()))
 }
 
 template<typename CLT>
@@ -169,10 +204,10 @@ void Tests::Chunk<CLT>::iteration() {
     vec.push_back(static_cast<IntegralT>(i));
   }
 
-  std::unique_ptr<CT> chunkPtr = std::make_unique<CT>(vec.data(), CHUNK_SIZE);
+  CT chunk{vec.data(), CHUNK_SIZE};
 
   IntegralT expected = 0;
-  for (auto it = chunkPtr->begin(); it != chunkPtr->end(); ++it) {
+  for (auto it = chunk.begin(); it != chunk.end(); ++it) {
     auto item = *it;
     THROW_IF(item != expected, concatenate("Expected item to be equal to ", expected, " but received ", item))
     ++expected;
@@ -265,6 +300,8 @@ void Tests::Stacking<CLT>::operator()() {
 
   THROW_IF(str != expectedOutput,
            concatenate("ostream insertion ran incorrectly\nReceived: ", str, "\nExpected: ", expectedOutput))
+
+  auto i = begin(chunkedList);
 }
 
 template<typename CLT>
@@ -590,7 +627,7 @@ void Tests::ConcatenationAndIndexing<CLT>::operator()() const {
 }
 
 template<typename CLT>
-void Tests::EqualityAndInequality<CLT>::operator()() const {
+void Tests::ListComparison<CLT>::operator()() const {
   CLT list1{};
   CLT list2{};
 
