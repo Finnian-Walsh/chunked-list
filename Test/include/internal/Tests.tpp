@@ -489,11 +489,13 @@ void Tests::SlicesAndIterators<CLT>::operator()() const {
     const size_t startOffset = rng(0, MAX - 2);
     const size_t endOffset = rng(startOffset, MAX - 1);
 
+    auto it1 = begin(chunkedList) + startOffset, it2 = begin(chunkedList) + endOffset;
+
     auto slice =
-      chunkedList.VARIANT_CODE(slice, get_slice)(begin(chunkedList) + startOffset, begin(chunkedList) + endOffset);
+      chunkedList.VARIANT_CODE(slice, get_slice)(it1, it2);
 
     auto slice2 =
-      constListRef.VARIANT_CODE(slice, get_slice)(begin(chunkedList) + startOffset, begin(chunkedList) + endOffset);
+      constListRef.VARIANT_CODE(slice, get_slice)(it1, it2);
 
     THROW_IF(slice != slice2, "");
 

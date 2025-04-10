@@ -6,9 +6,12 @@
 #include <memory>
 #include <sstream>
 
-#include "internal/ChunkedListUtility.hpp"
+#include "detail/utility.hpp"
 
 namespace chunked_list {
+  template<typename, size_t, typename>
+  class ChunkedListAccessor;
+
   /**
    * @class ChunkedList
    * @brief A contiguous-like linear data structure, implemented as a linked list of fixed-size chunks.
@@ -24,25 +27,11 @@ namespace chunked_list {
   class ChunkedList {
       static_assert(ChunkSize > 0, "Chunk Size must be greater than 0");
 
-    protected:
+      friend class ChunkedListAccessor<T, ChunkSize, Allocator>;
+
       size_t chunkCount{1};
 
       using AllocatorTraits = std::allocator_traits<Allocator>;
-
-      class BoundaryError final : std::exception {
-          const std::string message = "Out of bounds";
-
-        public:
-          BoundaryError() = default;
-
-          explicit BoundaryError(const char *message);
-
-          explicit BoundaryError(const std::string &message);
-
-          explicit BoundaryError(std::string &&message);
-
-          const char *what() const noexcept override;
-      };
 
       template<typename ChunkT, typename ValueT>
       class GenericIterator;
@@ -166,7 +155,7 @@ namespace chunked_list {
 
         public:
           template<typename ChunkIteratorT>
-            requires utility::is_chunk_iterator<ChunkedList, ChunkIteratorT>
+            requires utility::chunk_iterator<ChunkedList, ChunkIteratorT>
           explicit GenericChunkIterator(ChunkIteratorT chunkIterator);
 
           /**
@@ -248,7 +237,7 @@ namespace chunked_list {
            * @return Whether the chunk pointer of the given object is equal to the chunk pointer of the other
            */
           template<typename ChunkIteratorT>
-            requires utility::is_chunk_iterator<ChunkedList, ChunkIteratorT>
+            requires utility::chunk_iterator<ChunkedList, ChunkIteratorT>
           bool operator==(ChunkIteratorT other) const;
 
           /**
@@ -258,7 +247,7 @@ namespace chunked_list {
            * @return Whether the chunk pointer of the given object is unequal to the chunk pointer of the other
            */
           template<typename ChunkIteratorT>
-            requires utility::is_chunk_iterator<ChunkedList, ChunkIteratorT>
+            requires utility::chunk_iterator<ChunkedList, ChunkIteratorT>
           bool operator!=(ChunkIteratorT other) const;
 
           /**
@@ -311,7 +300,7 @@ namespace chunked_list {
 
         public:
           template<typename IteratorT>
-            requires utility::is_iterator<ChunkedList, IteratorT>
+            requires utility::iterator<ChunkedList, IteratorT>
           explicit GenericIterator(IteratorT iterator);
 
           /**
@@ -402,7 +391,7 @@ namespace chunked_list {
            * of the other
            */
           template<typename IteratorT>
-            requires utility::is_iterator<ChunkedList, IteratorT>
+            requires utility::iterator<ChunkedList, IteratorT>
           bool operator==(IteratorT other) const;
 
           /**
@@ -413,7 +402,7 @@ namespace chunked_list {
            * iterator of the other
            */
           template<typename IteratorT>
-            requires utility::is_iterator<ChunkedList, IteratorT>
+            requires utility::iterator<ChunkedList, IteratorT>
           bool operator!=(IteratorT other) const;
 
           /**
@@ -552,6 +541,25 @@ namespace chunked_list {
        * @brief The destructor for the chunked list, deallocating each chunk starting from the back
        */
       ~ChunkedList();
+
+      /**
+       * @brief An exceptional class; instances of this are thrown when an index exceeds the boundaries when an at
+       * function is called
+       */
+      class BoundaryError final : std::exception {
+          const std::string message = "Out of bounds";
+
+        public:
+          BoundaryError() = default;
+
+          explicit BoundaryError(const char *message);
+
+          explicit BoundaryError(const std::string &message);
+
+          explicit BoundaryError(std::string &&message);
+
+          const char *what() const noexcept override;
+      };
 
       /**
        * @brief Adds the value type publicly to the chunked list for type deduction
@@ -697,7 +705,7 @@ namespace chunked_list {
        * @return An in-place slice which references the start iterator to the end iterator (inclusive-exclusive)
        */
       template<typename StartIteratorT, typename EndIteratorT>
-        requires utility::are_iterators_or_chunk_iterators<ChunkedList, StartIteratorT, EndIteratorT>
+        requires utility::all_iterators_or_chunk_iterators<ChunkedList, StartIteratorT, EndIteratorT>
       Slice slice(StartIteratorT start, EndIteratorT end);
 
       /**
@@ -707,7 +715,7 @@ namespace chunked_list {
        * @return An in-place slice which references the start iterator to the end iterator (inclusive-exclusive)
        */
       template<typename StartIteratorT, typename EndIteratorT>
-        requires utility::are_iterators_or_chunk_iterators<ChunkedList, StartIteratorT, EndIteratorT>
+        requires utility::all_iterators_or_chunk_iterators<ChunkedList, StartIteratorT, EndIteratorT>
       ConstSlice slice(StartIteratorT start, EndIteratorT end) const;
 
       /**
@@ -916,8 +924,8 @@ end(const typename chunked_list::ChunkedList<T, ChunkSize>::Chunk &chunk) noexce
 #undef DEBUG_LINE
 #undef DEBUG_EXECUTE
 
-#include "internal/ChunkedList.tpp"
-#include "internal/ChunkedListChunk.tpp"
-#include "internal/ChunkedListIterator.tpp"
-#include "internal/ChunkedListSlice.tpp"
-#include "internal/ChunkedListUtility.tpp"
+#include "detail/ChunkedList.tpp"
+#include "detail/Chunk.tpp"
+#include "detail/Iterator.tpp"
+#include "detail/Slice.tpp"
+#include "detail/utility.tpp"

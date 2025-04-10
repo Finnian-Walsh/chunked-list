@@ -1,7 +1,6 @@
 #pragma once
 
 #include "TestUtility.hpp"
-#include "chunked-list/ChunkedListAccessor.hpp"
 
 #include <chrono>
 #include <cstdlib>

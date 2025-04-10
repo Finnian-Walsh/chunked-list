@@ -3,10 +3,9 @@
 #include <iostream>
 
 #include "../ChunkedList.hpp"
-#include "ChunkedListUtility.hpp"
+#include "utility.hpp"
 
 namespace chunked_list {
-
   template<typename T, size_t ChunkSize, typename Allocator>
   ChunkedList<T, ChunkSize, Allocator>::BoundaryError::BoundaryError(const char *message) : message{message} {}
 
@@ -191,7 +190,7 @@ namespace chunked_list {
 
   template<typename T, size_t ChunkSize, typename Allocator>
   template<typename StartIteratorT, typename EndIteratorT>
-    requires utility::are_iterators_or_chunk_iterators<ChunkedList<T, ChunkSize, Allocator>, StartIteratorT,
+    requires utility::all_iterators_or_chunk_iterators<ChunkedList<T, ChunkSize, Allocator>, StartIteratorT,
                                                        EndIteratorT>
   typename ChunkedList<T, ChunkSize, Allocator>::Slice ChunkedList<T, ChunkSize, Allocator>::slice(StartIteratorT start,
                                                                                                    EndIteratorT end) {
@@ -200,7 +199,7 @@ namespace chunked_list {
 
   template<typename T, size_t ChunkSize, typename Allocator>
   template<typename StartIteratorT, typename EndIteratorT>
-    requires utility::are_iterators_or_chunk_iterators<ChunkedList<T, ChunkSize, Allocator>, StartIteratorT,
+    requires utility::all_iterators_or_chunk_iterators<ChunkedList<T, ChunkSize, Allocator>, StartIteratorT,
                                                        EndIteratorT>
   typename ChunkedList<T, ChunkSize, Allocator>::ConstSlice
   ChunkedList<T, ChunkSize, Allocator>::slice(StartIteratorT start, EndIteratorT end) const {

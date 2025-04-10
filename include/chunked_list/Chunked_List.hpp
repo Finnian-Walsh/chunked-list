@@ -47,11 +47,11 @@ namespace chunked_list {
       const_slice get_slice(size_t start_index, size_t end_index) const;
 
       template<typename Begin_Iterator_Type, typename End_Iterator_Type>
-        requires utility::are_iterators_or_chunk_iterators<derived_chunked_list, Begin_Iterator_Type, End_Iterator_Type>
+        // requires utility::all_iterators_or_chunk_iterators<derived_chunked_list, Begin_Iterator_Type, End_Iterator_Type>
       slice get_slice(Begin_Iterator_Type begin, End_Iterator_Type end);
 
       template<typename Begin_Iterator_Type, typename End_Iterator_Type>
-        requires utility::are_iterators_or_chunk_iterators<derived_chunked_list, Begin_Iterator_Type, End_Iterator_Type>
+        // requires utility::all_iterators_or_chunk_iterators<derived_chunked_list, Begin_Iterator_Type, End_Iterator_Type>
       const_slice get_slice(Begin_Iterator_Type begin, End_Iterator_Type end) const;
 
       using derived_chunked_list::push;
@@ -100,4 +100,4 @@ template<typename T, size_t Chunk_Size>
 typename chunked_list::Chunked_List<T, Chunk_Size>::const_iterator
 end(const chunked_list::Chunked_List<T, Chunk_Size> &chunked_list);
 
-#include "internal/ChunkedListSnake.tpp"
+#include "detail/Chunked_List.tpp"

@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <queue>
 
-#include "ChunkedListUtility.hpp"
+#include "utility.hpp"
 
 namespace chunked_list::utility {
   template<string_compatible T>

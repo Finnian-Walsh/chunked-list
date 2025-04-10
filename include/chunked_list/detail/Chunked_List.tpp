@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../ChunkedListSnake.hpp"
+#include "../Chunked_List.hpp"
 
 namespace chunked_list {
   template<typename T, size_t Chunk_Size, typename Allocator>
@@ -37,8 +37,8 @@ namespace chunked_list {
 
   template<typename T, size_t Chunk_Size, typename Allocator>
   template<typename Begin_Iterator_Type, typename End_Iterator_Type>
-    requires utility::are_iterators_or_chunk_iterators<ChunkedList<T, Chunk_Size>, Begin_Iterator_Type,
-                                                       End_Iterator_Type>
+    // requires utility::all_iterators_or_chunk_iterators<ChunkedList<T, Chunk_Size>, Begin_Iterator_Type,
+    //                                                    End_Iterator_Type>
   typename Chunked_List<T, Chunk_Size, Allocator>::slice Chunked_List<T, Chunk_Size, Allocator>::get_slice(Begin_Iterator_Type begin,
                                                                                      End_Iterator_Type end) {
     return derived_chunked_list::template slice<Begin_Iterator_Type, End_Iterator_Type>(begin, end);
@@ -46,8 +46,8 @@ namespace chunked_list {
 
   template<typename T, size_t Chunk_Size, typename Allocator>
   template<typename Begin_Iterator_Type, typename End_Iterator_Type>
-    requires utility::are_iterators_or_chunk_iterators<ChunkedList<T, Chunk_Size>, Begin_Iterator_Type,
-                                                       End_Iterator_Type>
+    // requires utility::all_iterators_or_chunk_iterators<ChunkedList<T, Chunk_Size>, Begin_Iterator_Type,
+                                                       // End_Iterator_Type>
   typename Chunked_List<T, Chunk_Size, Allocator>::const_slice
   Chunked_List<T, Chunk_Size, Allocator>::get_slice(Begin_Iterator_Type begin, End_Iterator_Type end) const {
     return derived_chunked_list::template slice<Begin_Iterator_Type, End_Iterator_Type>(begin, end);

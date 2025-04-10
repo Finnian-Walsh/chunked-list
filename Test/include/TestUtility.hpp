@@ -8,9 +8,9 @@
 #include <unistd.h>
 #include <unordered_set>
 
-#include "chunked-list/ChunkedList.hpp"
-#include "chunked-list/ChunkedListAccessor.hpp"
-#include "chunked-list/ChunkedListSnake.hpp"
+#include "chunked_list/ChunkedList.hpp"
+#include "chunked_list/Chunked_List.hpp"
+#include "chunked_list/ChunkedListAccessor.hpp"
 
 using namespace chunked_list;
 using namespace utility;
