@@ -11,6 +11,17 @@ SUBTEST(Initialization) {
   List{BASIC_INITIALIZER_LIST};
 }
 
+SUBTEST(Pushing) {
+  List list;
+  Integral value{5};
+
+  // const Integral &valueRef = value;
+
+  for (size_t i = 0; i < static_cast<size_t>(value); ++i) {
+    list.push_back(std::forward<Integral>(value));
+  }
+}
+
 SUBTEST(StaticMembers) {
   ASSERT(static_cast<bool>(std::is_same_v<typename List::value_type, Integral>))
   ASSERT(List::chunk_size == ChunkSize);
@@ -88,7 +99,6 @@ SUBTEST(Iteration) {
     --counter;
     ASSERT(*crit == counter)
   }
-
 }
 
 SUBTEST(Slicing) {

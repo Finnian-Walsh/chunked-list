@@ -20,7 +20,6 @@ SUBTEST(Initialization) {
 
   auto prev = reinterpret_cast<Chunk *>(static_cast<uintptr_t>(1));
   auto next = reinterpret_cast<Chunk *>(static_cast<uintptr_t>(2));
-  Integral value{};
 
   ASSERT_OBJ(Chunk{}, obj.prevChunk == nullptr, obj.nextChunk == nullptr)
   ASSERT_OBJ(Chunk{prev}, obj.prevChunk == prev, obj.nextChunk == nullptr);
@@ -30,19 +29,17 @@ SUBTEST(Initialization) {
   ASSERT_OBJ((Chunk{vec.data(), vec.size(), prev}), obj.prevChunk == prev, obj.nextChunk == nullptr)
   ASSERT_OBJ((Chunk{vec.data(), vec.size()}), obj.prevChunk == nullptr, obj.nextChunk == nullptr)
 
-  ASSERT_OBJ(Chunk{value}, obj.prevChunk == nullptr, obj.nextChunk == nullptr)
-  ASSERT_OBJ((Chunk{value, prev}), obj.prevChunk == prev, obj.nextChunk == nullptr)
-  ASSERT_OBJ((Chunk{value, prev, next}), obj.prevChunk == prev, obj.nextChunk == next)
+  ASSERT_OBJ(Chunk{Integral{}}, obj.prevChunk == nullptr, obj.nextChunk == nullptr)
+  ASSERT_OBJ((Chunk{Integral{}, prev}), obj.prevChunk == prev, obj.nextChunk == nullptr)
+  ASSERT_OBJ((Chunk{Integral{}, prev, next}), obj.prevChunk == prev, obj.nextChunk == next)
 }
 
 /*
  * value_type
  * chunk_size
  */
-SUBTEST(StaticMembers) {
-  ASSERT(static_cast<bool>(std::is_same_v<Integral, typename Chunk::value_type>))
-  ASSERT(ChunkSize == Chunk::chunk_size)
-}
+SUBTEST(StaticMembers){ASSERT(static_cast<bool>(std::is_same_v<Integral, typename Chunk::value_type>))
+                         ASSERT(ChunkSize == Chunk::chunk_size)}
 
 /*
  * T *data();

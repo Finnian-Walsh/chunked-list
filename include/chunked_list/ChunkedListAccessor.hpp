@@ -28,7 +28,7 @@ namespace chunked_list {
       using DerivedChunkedList::generic_iterator;
   };
 
-  template<typename ChunkedListT>
-  using Accessor = ChunkedListAccessor<typename ChunkedListT::value_type, ChunkedListT::chunk_size,
-                                       ChunkedListT::template allocator_type>;
+  template<typename ChunkedListType>
+  using Accessor = ChunkedListAccessor<typename ChunkedListType::value_type, ChunkedListType::chunk_size,
+                                       ChunkedListType::template allocator_type>;
 } // namespace chunked_list
