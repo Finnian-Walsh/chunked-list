@@ -21,7 +21,7 @@ PERFORMANCE_BENCHMARK("ChunkedList") {
   callPerformanceTest(
     [&list]{
       for (int i = 0; i < PUSHES; ++i) {
-        list->push_back(i);
+        list.load()->push_back(i);
       }
     },
     concatenate("Pushing ", PUSHES, " ints").c_str());
@@ -29,7 +29,7 @@ PERFORMANCE_BENCHMARK("ChunkedList") {
   callPerformanceTest(
     [&list] {
       for (int i = 0; i < PUSHES; ++i) {
-        list->pop_back();
+        list.load()->pop_back();
       }
     },
     concatenate("Popping ", PUSHES, " ints").c_str());
