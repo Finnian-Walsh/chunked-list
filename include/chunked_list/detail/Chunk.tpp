@@ -34,7 +34,7 @@ namespace chunked_list {
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>
   const T *ChunkedList<T, ChunkSize, Allocator>::Chunk::data() const {
-    return std::launder(reinterpret_cast<T *>(array));
+    return std::launder(reinterpret_cast<const T *>(array));
   }
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>
