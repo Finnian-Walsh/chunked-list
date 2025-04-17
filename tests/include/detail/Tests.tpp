@@ -1,195 +1,3 @@
-#pragma once
-
-#include "TestUtility.hpp"
-
-template<typename CLT>
-void Tests::Chunk<CLT>::operator()() const {
-  using AccessorType = Accessor<CLT>;
-  using ChunkType = typename AccessorType::Chunk;
-
-  using ComplexChunkType =
-    typename ChunkedListAccessor<ComplexT, CLT::chunk_size * 2, typename CLT::allocator_type>::Chunk;
-
-  initialization<ChunkType>();
-  indexing<ChunkType>();
-  stacking<ComplexChunkType>();
-  arithmetic<ChunkType>();
-  size<ChunkType>();
-  comparison<ChunkType>();
-  iteration<ChunkType>();
-}
-
-template<typename CLT>
-template<typename ChunkT>
-void Tests::Chunk<CLT>::initialization() {
-  std::vector<IntegralT> vec;
-
-  for (size_t index = 0; index < ChunkT::chunk_size; ++index) {
-    vec.push_back(static_cast<IntegralT>(index));
-  }
-
-  ChunkT *ptr = nullptr;
-  IntegralT value{};
-
-  ChunkT chunk1;
-  ChunkT chunk2{ptr, ptr};
-  ChunkT chunk3{ptr};
-
-  ChunkT chunk4{vec.data(), vec.size(), ptr, ptr};
-  ChunkT chunk5{vec.data(), vec.size(), ptr};
-  ChunkT chunk6{vec.data(), vec.size()};
-
-  ChunkT chunk7{value, ptr, ptr};
-  ChunkT chunk8{value, ptr};
-  ChunkT chunk9{value};
-}
-
-template<typename CLT>
-template<typename LCT>
-void Tests::Chunk<CLT>::indexing() {
-  performTask("Chunk indexing");
-  std::vector<IntegralT> vec;
-
-  for (size_t i = 0; i < LCT::chunk_size; ++i) {
-    vec.push_back(static_cast<IntegralT>(i));
-  }
-
-  LCT chunk{vec.data(), vec.size()};
-
-  for (size_t i = 0; i < LCT::chunk_size; ++i) {
-    const std::string &&errMessage =
-      concatenate("Expected ", ordinalize(i), " element of chunked list to be equal to ", i);
-    THROW_IF(chunk[i] != vec[i], std::move(errMessage))
-    THROW_IF(chunk.at(i) != vec.at(i), std::move(errMessage))
-  }
-}
-
-template<typename CLT>
-template<typename CT>
-void Tests::Chunk<CLT>::stacking() {
-  performTask("Stacking");
-
-  constexpr size_t CHUNK_SIZE = CT::chunk_size;
-
-  constexpr size_t HALF_CHUNK_SIZE = CHUNK_SIZE / 2;
-
-  CT chunk;
-
-  using ValueType = typename CT::value_type;
-
-  std::vector<ValueType> vec;
-
-  for (size_t i = 0; i < HALF_CHUNK_SIZE; ++i) {
-    const IntegralT num = static_cast<IntegralT>(i);
-    chunk.push({num, num});
-    vec.push_back({num, num});
-  }
-
-  for (size_t i = HALF_CHUNK_SIZE; i < CHUNK_SIZE; ++i) {
-    const IntegralT num = static_cast<IntegralT>(i);
-    chunk.emplace(num, num);
-    vec.emplace_back(num, num);
-  }
-
-  for (size_t i = 0; i < CHUNK_SIZE; ++i) {
-    THROW_IF(chunk[i] != vec[i], concatenate("Expected item to be equal to ", vec[i]))
-  }
-}
-
-template<typename CLT>
-template<typename CT>
-void Tests::Chunk<CLT>::arithmetic() {
-  performTask("Chunk advancing");
-
-  CustomAllocator<CT> allocator;
-
-  CT *front = allocator.allocate(1);
-  CT *back = front;
-
-  allocator.construct(front);
-
-  constexpr size_t RANGE = 3;
-
-  // Allocation
-
-  for (size_t i = 0; i < RANGE; ++i) {
-    CT *next = allocator.allocate(1);
-    allocator.construct(next, nullptr, 0, back);
-    back->nextChunk = next;
-    back = next;
-  }
-
-  CT *expectedBack = &((*front) + RANGE);
-
-  THROW_IF(expectedBack != back, concatenate("Expected front + ", RANGE, " to be equal to back"))
-
-  CT *expectedFront = &((*back) - RANGE);
-
-  THROW_IF(expectedFront != front, concatenate("Expected front + ", RANGE, " to be equal to front"))
-
-  // Deallocation
-
-  size_t counter{};
-
-  do {
-    CT *prev = back->prevChunk;
-    allocator.destroy(back);
-    allocator.deallocate(back, 1);
-    back = prev;
-    ++counter;
-  } while (back); // repeats RANGE + 1 times
-
-  constexpr size_t EXPECTED_DELETIONS = RANGE + 1;
-  THROW_IF(counter != EXPECTED_DELETIONS,
-           concatenate("Expected ", EXPECTED_DELETIONS, " deletions, but there were ", counter))
-}
-
-template<typename CLT>
-template<typename CT>
-void Tests::Chunk<CLT>::size() {
-  constexpr size_t chunk_size = CT::chunk_size;
-
-  for (size_t loadPercentage = 0; loadPercentage <= 100; loadPercentage += 10) {
-    const size_t load = chunk_size * loadPercentage / 100;
-
-    std::vector<IntegralT> vec;
-
-    for (IntegralT i = 0; i < static_cast<IntegralT>(load); ++i) {
-      vec.push_back(i);
-    }
-
-    CT chunk{vec.data(), vec.size()};
-
-    const size_t chunkSize = chunk.size();
-    THROW_IF(chunkSize != load, concatenate("Expected chunk size to be equal to ", load, " but received ", chunk_size))
-  }
-
-  CT chunk;
-
-  THROW_IF(!chunk.empty(), "Expected empty chunk to be empty")
-
-  for (size_t i = 0; i < chunk_size; ++i) {
-    chunk.emplace();
-  }
-
-  for (size_t i = 0; i < chunk_size; ++i) {
-    chunk.pop();
-  }
-
-  THROW_IF(!chunk.empty(), concatenate("Expected chunk to be empty, but its size is ", chunk.size()))
-}
-
-template<typename CLT>
-template<typename CT>
-void Tests::Chunk<CLT>::comparison() {
-  CT chunkA;
-  CT chunkB;
-
-  THROW_IF(chunkA == chunkB, "chunk a equal to chunk b")
-  THROW_IF(!(chunkA != chunkB), "chunk a not unequal to chunk b")
-  THROW_IF(chunkA != chunkA, "chunk a unequal to chunk a")
-  THROW_IF(!(chunkA == chunkA), "chunk a not equal to chunk a")
-}
 
 template<typename CLT>
 template<typename CT>
@@ -287,7 +95,7 @@ void Tests::Stacking<CLT>::operator()() {
     int num = rng(-RANGE, RANGE);
     expectedOutput += ", ";
     expectedOutput += std::to_string(num);
-    chunkedList.push(num);
+    chunkedList.push_back(num);
   }
 
   expectedOutput.push_back(']');
@@ -355,7 +163,7 @@ void Tests::Clearing<CLT>::clear() {
 
   for (size_t multiplier = 1; multiplier <= 5; ++multiplier) {
     for (size_t i = 0; i < CHUNK_SIZE * multiplier; ++i) {
-      list.push(static_cast<IntegralT>(i));
+      list.push_back(static_cast<IntegralT>(i));
     }
 
     list.template clear<ClearFront>();
@@ -370,7 +178,7 @@ void Tests::Clearing<CLT>::postliminary_checks(CLT &list) {
   THROW_IF(size != 0, concatenate("Expected cleared list to have size of 0 but size() returned ", size))
 
   constexpr IntegralT NUM = 69;
-  list.push(NUM);
+  list.push_back(NUM);
 
   const IntegralT first = list[0];
 
@@ -381,6 +189,8 @@ void Tests::Clearing<CLT>::postliminary_checks(CLT &list) {
 
 template<typename CLT>
 void Tests::Sorting<CLT>::operator()() const {
+  using namespace utility;
+
   const std::string initialSource = testData.getSource();
 
 #define EXTEND_SOURCE(extension) testData.setSource(std::move(concatenate(initialSource, extension)));
@@ -404,7 +214,7 @@ void Tests::Sorting<CLT>::operator()() const {
 }
 
 template<typename CLT>
-template<SortType SortingAlgorithm>
+template<utility::SortType SortingAlgorithm>
 void Tests::Sorting<CLT>::sort() const {
   performTask("List creation");
   CLT list;
@@ -415,7 +225,7 @@ void Tests::Sorting<CLT>::sort() const {
   performTask("Pushing or using the RNG");
   static constexpr int ITERATIONS = 300;
   for (int i = 0; i < ITERATIONS; ++i) {
-    list.push(rng(std::numeric_limits<IntegralT>::min(), std::numeric_limits<IntegralT>::max()));
+    list.push_back(rng(std::numeric_limits<IntegralT>::min(), std::numeric_limits<IntegralT>::max()));
   }
 
   performTask("Sorting");
@@ -427,20 +237,20 @@ void Tests::Sorting<CLT>::sort() const {
   performTask("Calling begin()");
   auto iterator = list.begin();
 
-  performTask("Iterator operator+=()");
+  performTask("iterator operator+=()");
   iterator += 1;
 
   performTask("Calling end()");
   const auto end = list.end();
 
-  performTask("Iterator inequality");
+  performTask("iterator inequality");
   for (; iterator != end; ++iterator) {
-    performTask("Iterator dereferencing");
+    performTask("iterator dereferencing");
     THROW_IF(*iterator < last, "Sorting failed!")
 
     last = *iterator;
 
-    performTask("Iterator operator++(int)");
+    performTask("iterator operator++(int)");
   }
 }
 
@@ -450,8 +260,8 @@ void Tests::PushingAndPopping<CLT>::operator()() const {
 
   performTask("Pushing");
   for (int i = 0; i < 10; ++i) {
-    chunkedList.push('a');
-    chunkedList.push('b');
+    chunkedList.push_back('a');
+    chunkedList.push_back('b');
   }
 
   for (size_t i = 20; i > 1; --i) {
@@ -478,7 +288,7 @@ void Tests::SlicesAndIterators<CLT>::operator()() const {
 
   performTask("Pushing");
   for (size_t i = 1; i <= MAX; ++i) {
-    chunkedList.push(static_cast<IntegralT>(i));
+    chunkedList.push_back(static_cast<IntegralT>(i));
   }
 
   const CLT &constListRef = chunkedList;
@@ -491,11 +301,9 @@ void Tests::SlicesAndIterators<CLT>::operator()() const {
 
     auto it1 = begin(chunkedList) + startOffset, it2 = begin(chunkedList) + endOffset;
 
-    auto slice =
-      chunkedList.VARIANT_CODE(slice, get_slice)(it1, it2);
+    auto slice = chunkedList.slice(it1, it2);
 
-    auto slice2 =
-      constListRef.VARIANT_CODE(slice, get_slice)(it1, it2);
+    auto slice2 = constListRef.slice(it1, it2);
 
     THROW_IF(slice != slice2, "");
 
@@ -523,7 +331,7 @@ void Tests::SlicesAndIterators<CLT>::operator()() const {
 
     IntegralT expected = static_cast<IntegralT>(startIndex + 1);
 
-    for (auto slice = chunkedList.VARIANT_CODE(slice, get_slice)(startIndex, endIndex); auto item : slice) {
+    for (auto slice = chunkedList.slice(startIndex, endIndex); auto item : slice) {
       THROW_IF(item != expected, concatenate("Expected item to be equal to ", expected, " but received ", item));
       ++expected;
     }
@@ -560,8 +368,8 @@ void Tests::SlicesAndIterators<CLT>::operator()() const {
              concatenate("Iterator + ", OFFSET, " is unequal to const Iterator + ", OFFSET));
   }
   {
-    auto beginChunk = chunkedList.VARIANT_CODE(beginChunk, begin_chunk)();
-    auto constBeginChunk = constListRef.VARIANT_CODE(beginChunk, begin_chunk)();
+    auto beginChunk = chunkedList.template begin<CLT::chunk_iterator>();
+    auto constBeginChunk = constListRef.template begin<CLT::chunk_iterator>();
 
     THROW_IF(beginChunk != constBeginChunk, "ChunkIterator is unequal to const ChunkIterator")
     THROW_IF(constBeginChunk != beginChunk, "const ChunkIterator is unequal to ChunkIterator")
@@ -572,7 +380,7 @@ void Tests::SlicesAndIterators<CLT>::operator()() const {
     THROW_IF(std::next(beginChunk) != beginChunk + 1, "std::next(ChunkIterator) is not equal to ChunkIterator + 1")
     int tracker = 1;
 
-    for (auto chunkIt = beginChunk; chunkIt != chunkedList.VARIANT_CODE(endChunk, end_chunk)(); ++chunkIt) {
+    for (auto chunkIt = beginChunk; chunkIt != chunkedList.template end<CLT::chunk_iterator>(); ++chunkIt) {
       performTask("ChunkIterator dereferencing");
       auto &chunkRef = *chunkIt;
       performTask("Chunk indexing");
@@ -586,11 +394,11 @@ void Tests::SlicesAndIterators<CLT>::operator()() const {
 
   performTask("Pushing");
   for (int i = 11; i <= 1000; ++i) {
-    chunkedList.push(i);
+    chunkedList.push_back(i);
   }
   {
-    performTask(concatenate("Calling ", VARIANT_CODE("beginChunk", "begin_chunk"), " method").c_str());
-    auto chunkIt = chunkedList.VARIANT_CODE(beginChunk, begin_chunk)();
+    performTask("Calling begin method with chunk iterator");
+    typename CLT::chunk_iterator chunkIt = chunkedList.begin();
     auto chunkIt2 = chunkIt + 1;
 
     THROW_IF(chunkIt2 - 1 != chunkIt, "ChunkIterator + 1 - 1 is unequal to ChunkIterator")
@@ -612,7 +420,7 @@ void Tests::ConcatenationAndIndexing<CLT>::operator()() const {
 
   performTask("Pushing");
   for (int i = 0; i < 10; ++i) {
-    chunkedList.push(i);
+    chunkedList.push_back(i);
   }
   {
     performTask("Concatenation");
@@ -636,12 +444,12 @@ void Tests::ListComparison<CLT>::operator()() const {
   performTask("Pushing");
 
   for (int i = 1; i < 4; ++i) {
-    list1.push(i);
-    list2.push(i);
+    list1.push_back(i);
+    list2.push_back(i);
   }
 
-  list1.push(4);
-  list2.push(3);
+  list1.push_back(4);
+  list2.push_back(3);
 
   THROW_IF(list1 == list2, "List comparison 1 failed")
 
@@ -649,19 +457,19 @@ void Tests::ListComparison<CLT>::operator()() const {
   list2.pop();
 
   performTask("Pushing");
-  list2.push(4);
+  list2.push_back(4);
 
   performTask("ChunkedList inequality");
   THROW_IF(list1 != list2, "List comparison 2 failed")
 
   performTask("Pushing");
   for (int i = 0; i < 80; ++i) {
-    list1.push(i);
-    list2.push(i);
+    list1.push_back(i);
+    list2.push_back(i);
   }
 
-  list1.push(1);
-  list2.push(1);
+  list1.push_back(1);
+  list2.push_back(1);
 
   performTask("ChunkedList inequality");
   THROW_IF(list1 != list2, "List comparison 3 failed")
@@ -670,7 +478,7 @@ void Tests::ListComparison<CLT>::operator()() const {
   list2.pop();
 
   performTask("Pushing");
-  list2.push(2);
+  list2.push_back(2);
 
   performTask("List equality");
   THROW_IF(list1 == list2, "List comparison 4 failed")
