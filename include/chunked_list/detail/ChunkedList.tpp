@@ -6,89 +6,92 @@
 #include "utility.hpp"
 
 namespace chunked_list {
-  template<typename T, size_t ChunkSize, typename Allocator>
-  ChunkedList<T, ChunkSize, Allocator>::BoundaryError::BoundaryError(const char *message) : message{message} {}
-
-  template<typename T, size_t ChunkSize, typename Allocator>
-  ChunkedList<T, ChunkSize, Allocator>::BoundaryError::BoundaryError(const std::string &message) : message{message} {}
-
-  template<typename T, size_t ChunkSize, typename Allocator>
-  ChunkedList<T, ChunkSize, Allocator>::BoundaryError::BoundaryError(std::string &&message) :
-      message{std::move(message)} {}
-
-  template<typename T, size_t ChunkSize, typename Allocator>
-  const char *ChunkedList<T, ChunkSize, Allocator>::BoundaryError::what() const noexcept {
-    return message.data();
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  constexpr typename ChunkedList<T, ChunkSize, Allocator>::Chunk *ChunkedList<T, ChunkSize, Allocator>::get_sentinel() {
+    return reinterpret_cast<Chunk *>(&sentinel);
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
-  template<bool PrevAssigned>
-  void ChunkedList<T, ChunkSize, Allocator>::pushChunk(Chunk *chunk) {
-    back->nextChunk = chunk;
-
-    if (!PrevAssigned) {
-      chunk->prevChunk = back;
-    }
-
-    back = chunk;
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  constexpr const typename ChunkedList<T, ChunkSize, Allocator>::Chunk *
+  ChunkedList<T, ChunkSize, Allocator>::get_sentinel() const {
+    return reinterpret_cast<const Chunk *>(&sentinel);
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
-  ChunkedList<T, ChunkSize, Allocator>::ChunkedList() :
-      front{ChunkAllocatorTraits::allocate(chunkAllocator, 1)}, back{front} {
-    ChunkAllocatorTraits::construct(chunkAllocator, front);
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  ChunkedList<T, ChunkSize, Allocator>::ChunkedList() : chunk_count{0} {
+    new (&sentinel) Chunk{get_sentinel(), get_sentinel()};
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
   ChunkedList<T, ChunkSize, Allocator>::ChunkedList(std::initializer_list<T> initializerList) {
     if (initializerList.size() == 0) {
-      back = front = ChunkAllocatorTraits::allocate(chunkAllocator, 1);
-      ChunkAllocatorTraits::construct(chunkAllocator, front);
+      new (&sentinel) Chunk{get_sentinel(), get_sentinel()};
       return;
     }
 
     if (ChunkSize >= initializerList.size()) {
-      back = front = ChunkAllocatorTraits::allocate(chunkAllocator, 1);
-      ChunkAllocatorTraits::construct(chunkAllocator, front, initializerList.begin(), initializerList.size());
+      chunk_count = 1;
+      new (&sentinel) Chunk{initializerList.begin(), initializerList.size(), get_sentinel(), get_sentinel()};
       return;
     }
 
-    chunkCount = (initializerList.size() + ChunkSize - 1) / ChunkSize;
+    chunk_count = (initializerList.size() + ChunkSize - 1) / ChunkSize;
 
-    front = back = ChunkAllocatorTraits::allocate(chunkAllocator, 1);
-    ChunkAllocatorTraits::construct(chunkAllocator, front, initializerList.begin(), ChunkSize);
+    Chunk *frontPtr = ChunkAllocatorTraits::allocate(chunk_allocator, 1);
+    Chunk *backPtr = ChunkAllocatorTraits::allocate(chunk_allocator, 1);
 
-    for (size_t offset = 1; offset < chunkCount - 1; ++offset) {
-      Chunk *chunk = ChunkAllocatorTraits::allocate(chunkAllocator, 1);
-      ChunkAllocatorTraits::construct(chunkAllocator, chunk, initializerList.begin() + offset * ChunkSize, ChunkSize,
-                                      back);
-      pushChunk<true>(chunk);
+    new (frontPtr) Chunk{initializerList.begin(), ChunkSize, get_sentinel(), nullptr};
+    new (&sentinel) Chunk{backPtr, frontPtr};
+
+    Chunk *lastChunkPtr = frontPtr;
+
+    for (size_t offset = 1; offset < chunk_count - 1; ++offset) {
+      Chunk *chunkPtr = ChunkAllocatorTraits::allocate(chunk_allocator, 1);
+      new (chunkPtr) Chunk{initializerList.begin() + offset * ChunkSize, ChunkSize, lastChunkPtr};
+      lastChunkPtr->nextChunk = chunkPtr;
+      lastChunkPtr = chunkPtr;
     }
+
+    lastChunkPtr->nextChunk = backPtr;
 
     const int remainingItems = initializerList.size() % ChunkSize;
 
-    Chunk *ultimateChunk = ChunkAllocatorTraits::allocate(chunkAllocator, 1);
-
-    ChunkAllocatorTraits::construct(chunkAllocator, ultimateChunk,
-                                    initializerList.begin() + (chunkCount - 1) * ChunkSize,
-                                    remainingItems == 0 ? ChunkSize : remainingItems, back);
-
-    pushChunk<true>(ultimateChunk);
+    new (backPtr) Chunk{initializerList.begin() + (chunk_count - 1) * ChunkSize,
+                        remainingItems == 0 ? ChunkSize : remainingItems, lastChunkPtr, get_sentinel()};
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
   ChunkedList<T, ChunkSize, Allocator>::~ChunkedList() {
-    do {
-      Chunk *prev = back->prevChunk;
-      ChunkAllocatorTraits::destroy(chunkAllocator, back);
-      ChunkAllocatorTraits::deallocate(chunkAllocator, back, 1);
-      back = prev;
-    } while (back);
+    Chunk *currentPtr = get_sentinel()->prevChunk;
+
+    while (currentPtr != get_sentinel()) {
+      Chunk *prevPtr = currentPtr->prevChunk;
+      currentPtr->~Chunk();
+      ChunkAllocatorTraits::deallocate(chunk_allocator, currentPtr, 1);
+      currentPtr = prevPtr;
+    }
+
+    get_sentinel()->~Chunk();
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  ChunkedList<T, ChunkSize, Allocator>::BoundaryError::BoundaryError(const char *message) : message{message} {}
+
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  ChunkedList<T, ChunkSize, Allocator>::BoundaryError::BoundaryError(const std::string &message) : message{message} {}
+
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  ChunkedList<T, ChunkSize, Allocator>::BoundaryError::BoundaryError(std::string &&message) :
+      message{std::move(message)} {}
+
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  const char *ChunkedList<T, ChunkSize, Allocator>::BoundaryError::what() const noexcept {
+    return message.data();
+  }
+
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
   T &ChunkedList<T, ChunkSize, Allocator>::operator[](const size_t index) {
-    Chunk *chunk = front;
+    Chunk *chunk = get_sentinel()->nextChunk;
 
     for (size_t chunkIndex = index / ChunkSize; chunkIndex > 0; --chunkIndex) {
       chunk = chunk->nextChunk;
@@ -97,20 +100,12 @@ namespace chunked_list {
     return (*chunk)[index % ChunkSize];
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
   const T &ChunkedList<T, ChunkSize, Allocator>::operator[](const size_t index) const {
     return const_cast<ChunkedList *>(this)->operator[](index);
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
-  const T &ChunkedList<T, ChunkSize, Allocator>::at(const size_t index) const {
-    if (index >= size()) {
-      throw BoundaryError{utility::concatenate("Index ", index, " is out of bounds!")};
-    }
-    return operator[](index);
-  }
-
-  template<typename T, size_t ChunkSize, typename Allocator>
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
   T &ChunkedList<T, ChunkSize, Allocator>::at(const size_t index) {
     if (index >= size()) {
       throw BoundaryError{utility::concatenate("Index ", index, " is out of bounds!")};
@@ -118,52 +113,106 @@ namespace chunked_list {
     return operator[](index);
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
-  typename ChunkedList<T, ChunkSize, Allocator>::Iterator ChunkedList<T, ChunkSize, Allocator>::begin() {
-    return Iterator{front, 0};
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  const T &ChunkedList<T, ChunkSize, Allocator>::at(const size_t index) const {
+    if (index >= size()) {
+      throw BoundaryError{utility::concatenate("Index ", index, " is out of bounds!")};
+    }
+    return operator[](index);
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
-  typename ChunkedList<T, ChunkSize, Allocator>::ConstIterator ChunkedList<T, ChunkSize, Allocator>::begin() const {
-    return ConstIterator{front, 0};
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  template<typename IteratorType>
+    requires utility::iterator_or_chunk_iterator<ChunkedList<T, ChunkSize, Allocator>, IteratorType>
+  IteratorType ChunkedList<T, ChunkSize, Allocator>::begin() {
+    return IteratorType{get_sentinel()->nextChunk};
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
-  typename ChunkedList<T, ChunkSize, Allocator>::Iterator ChunkedList<T, ChunkSize, Allocator>::end() {
-    return Iterator{back, back->size()};
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  template<typename IteratorType>
+    requires utility::iterator_or_chunk_iterator_const<ChunkedList<T, ChunkSize, Allocator>, IteratorType>
+  IteratorType ChunkedList<T, ChunkSize, Allocator>::begin() const {
+    return IteratorType{get_sentinel()->nextChunk};
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
-  typename ChunkedList<T, ChunkSize, Allocator>::ConstIterator ChunkedList<T, ChunkSize, Allocator>::end() const {
-    return ConstIterator{back, back->size()};
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  template<typename IteratorType>
+    requires utility::iterator_or_chunk_iterator_const<ChunkedList<T, ChunkSize, Allocator>, IteratorType>
+  IteratorType ChunkedList<T, ChunkSize, Allocator>::cbegin() const {
+    return begin();
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
-  typename ChunkedList<T, ChunkSize, Allocator>::ChunkIterator ChunkedList<T, ChunkSize, Allocator>::beginChunk() {
-    return ChunkIterator{front};
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  template<typename ReverseIteratorType>
+    requires utility::iterator_or_chunk_iterator_reverse<ChunkedList<T, ChunkSize, Allocator>, ReverseIteratorType>
+  ReverseIteratorType ChunkedList<T, ChunkSize, Allocator>::rbegin() {
+    return ReverseIteratorType{end()};
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
-  typename ChunkedList<T, ChunkSize, Allocator>::ConstChunkIterator
-  ChunkedList<T, ChunkSize, Allocator>::beginChunk() const {
-    return ConstChunkIterator{front};
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  template<typename ReverseIteratorType>
+    requires utility::iterator_or_chunk_iterator_const_reverse<ChunkedList<T, ChunkSize, Allocator>,
+                                                               ReverseIteratorType>
+  ReverseIteratorType ChunkedList<T, ChunkSize, Allocator>::rbegin() const {
+    return ReverseIteratorType{cend()};
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
-  typename ChunkedList<T, ChunkSize, Allocator>::ChunkIterator ChunkedList<T, ChunkSize, Allocator>::endChunk() {
-    return ChunkIterator{nullptr};
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  template<typename ReverseIteratorType>
+    requires utility::iterator_or_chunk_iterator_const_reverse<ChunkedList<T, ChunkSize, Allocator>,
+                                                               ReverseIteratorType>
+  ReverseIteratorType ChunkedList<T, ChunkSize, Allocator>::crbegin() const {
+    return rbegin();
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
-  typename ChunkedList<T, ChunkSize, Allocator>::ConstChunkIterator
-  ChunkedList<T, ChunkSize, Allocator>::endChunk() const {
-    return ConstChunkIterator{nullptr};
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  template<typename IteratorType>
+    requires utility::iterator_or_chunk_iterator<ChunkedList<T, ChunkSize, Allocator>, IteratorType>
+  IteratorType ChunkedList<T, ChunkSize, Allocator>::end() {
+    return IteratorType{get_sentinel()};
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
-  typename ChunkedList<T, ChunkSize, Allocator>::Slice
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  template<typename IteratorType>
+    requires utility::iterator_or_chunk_iterator_const<ChunkedList<T, ChunkSize, Allocator>, IteratorType>
+  IteratorType ChunkedList<T, ChunkSize, Allocator>::end() const {
+    return IteratorType{get_sentinel()};
+  }
+
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  template<typename IteratorType>
+    requires utility::iterator_or_chunk_iterator_const<ChunkedList<T, ChunkSize, Allocator>, IteratorType>
+  IteratorType ChunkedList<T, ChunkSize, Allocator>::cend() const {
+    return end();
+  }
+
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  template<typename ReverseIteratorType>
+    requires utility::iterator_or_chunk_iterator_reverse<ChunkedList<T, ChunkSize, Allocator>, ReverseIteratorType>
+  ReverseIteratorType ChunkedList<T, ChunkSize, Allocator>::rend() {
+    return ReverseIteratorType{begin()};
+  }
+
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  template<typename ReverseIteratorType>
+    requires utility::iterator_or_chunk_iterator_const_reverse<ChunkedList<T, ChunkSize, Allocator>,
+                                                               ReverseIteratorType>
+  ReverseIteratorType ChunkedList<T, ChunkSize, Allocator>::rend() const {
+    return ReverseIteratorType{begin()};
+  }
+
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  template<typename ReverseIteratorType>
+    requires utility::iterator_or_chunk_iterator_const_reverse<ChunkedList<T, ChunkSize, Allocator>,
+                                                               ReverseIteratorType>
+  ReverseIteratorType ChunkedList<T, ChunkSize, Allocator>::crend() const {
+    return rend();
+  }
+
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  typename ChunkedList<T, ChunkSize, Allocator>::mutable_slice
   ChunkedList<T, ChunkSize, Allocator>::slice(const size_t startIndex, const size_t endIndex) {
-    ChunkIterator chunkIt{front};
+    chunk_iterator chunkIt{get_sentinel()->nextChunk};
 
     const size_t startChunkIndex = startIndex / ChunkSize;
 
@@ -179,73 +228,98 @@ namespace chunked_list {
       ++chunkIt;
     }
 
-    return Slice{Iterator{startChunk, startIndex % ChunkSize}, Iterator{*chunkIt, endIndex % ChunkSize}};
+    return mutable_slice{iterator{startChunk, startIndex % ChunkSize}, iterator{*chunkIt, endIndex % ChunkSize}};
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
-  typename ChunkedList<T, ChunkSize, Allocator>::ConstSlice
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  typename ChunkedList<T, ChunkSize, Allocator>::immutable_slice
   ChunkedList<T, ChunkSize, Allocator>::slice(const size_t startIndex, const size_t endIndex) const {
-    return ConstSlice{const_cast<ChunkedList *>(this)->slice(startIndex, endIndex)};
+    return immutable_slice{const_cast<ChunkedList *>(this)->slice(startIndex, endIndex)};
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  typename ChunkedList<T, ChunkSize, Allocator>::immutable_slice
+  ChunkedList<T, ChunkSize, Allocator>::cslice(const size_t startIndex, const size_t endIndex) const {
+    return slice();
+  }
+
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
   template<typename StartIteratorT, typename EndIteratorT>
     requires utility::all_iterators_or_chunk_iterators<ChunkedList<T, ChunkSize, Allocator>, StartIteratorT,
                                                        EndIteratorT>
-  typename ChunkedList<T, ChunkSize, Allocator>::Slice ChunkedList<T, ChunkSize, Allocator>::slice(StartIteratorT start,
-                                                                                                   EndIteratorT end) {
-    return Slice{start, end};
+  typename ChunkedList<T, ChunkSize, Allocator>::mutable_slice
+  ChunkedList<T, ChunkSize, Allocator>::slice(StartIteratorT start, EndIteratorT end) {
+    return mutable_slice{start, end};
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
   template<typename StartIteratorT, typename EndIteratorT>
     requires utility::all_iterators_or_chunk_iterators<ChunkedList<T, ChunkSize, Allocator>, StartIteratorT,
                                                        EndIteratorT>
-  typename ChunkedList<T, ChunkSize, Allocator>::ConstSlice
+  typename ChunkedList<T, ChunkSize, Allocator>::immutable_slice
   ChunkedList<T, ChunkSize, Allocator>::slice(StartIteratorT start, EndIteratorT end) const {
-    return ConstSlice{start, end};
+    return immutable_slice{start, end};
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
-  void ChunkedList<T, ChunkSize, Allocator>::push(T value) {
-    if (back->size() == ChunkSize) {
-      Chunk *chunk = ChunkAllocatorTraits::allocate(chunkAllocator, 1);
-      ChunkAllocatorTraits::construct(chunkAllocator, chunk, std::forward<T>(value), back);
-      pushChunk<true>(chunk);
-      ++chunkCount;
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  template<typename StartIteratorT, typename EndIteratorT>
+    requires utility::all_iterators_or_chunk_iterators<ChunkedList<T, ChunkSize, Allocator>, StartIteratorT,
+                                                       EndIteratorT>
+  typename ChunkedList<T, ChunkSize, Allocator>::immutable_slice
+  ChunkedList<T, ChunkSize, Allocator>::cslice(StartIteratorT start, EndIteratorT end) const {
+    return slice();
+  }
+
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  void ChunkedList<T, ChunkSize, Allocator>::push_back(T &&value) {
+    if (Chunk *backPtr = get_sentinel()->prevChunk; backPtr->size() == ChunkSize) {
+      Chunk *chunkPtr = ChunkAllocatorTraits::allocate(chunk_allocator, 1);
+      new (chunkPtr) Chunk{std::forward<T>(value), backPtr, get_sentinel()};
+
+      backPtr->nextChunk = chunkPtr;
+      get_sentinel()->prevChunk = chunkPtr;
+
+      ++chunk_count;
     } else {
-      back->push(std::forward<T>(value));
+      backPtr->push_back(std::forward<T>(value));
     }
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  void ChunkedList<T, ChunkSize, Allocator>::push_back(const T &value) {
+    push_back(T{value});
+  }
+
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
   template<typename... Args>
     requires utility::can_construct<T, Args...>
-  void ChunkedList<T, ChunkSize, Allocator>::emplace(Args &&...args) {
-    if (back->size() == ChunkSize) {
-      Chunk *chunk = ChunkAllocatorTraits::allocate(chunkAllocator, 1);
-      ChunkAllocatorTraits::construct(chunkAllocator, chunk, T{std::forward<Args>(args)}..., back);
-      pushChunk<true>(chunk);
+  void ChunkedList<T, ChunkSize, Allocator>::emplace_back(Args &&...args) {
+    if (Chunk *backPtr = get_sentinel()->prevChunk; backPtr->size() == ChunkSize) {
+      Chunk *chunkPtr = ChunkAllocatorTraits::allocate(chunk_allocator, 1);
+      new (chunkPtr) Chunk{T{std::forward<Args>(args)}..., backPtr, sentinel};
+
+      backPtr->nextChunk = chunkPtr;
+      get_sentinel()->prevChunk = chunkPtr;
+
+      ++chunk_count;
     } else {
-      back->emplace(args...);
+      backPtr->emplace_back(std::forward<Args>(args)...);
     }
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
-  template<bool DestroyValue>
-  void ChunkedList<T, ChunkSize, Allocator>::pop() {
-    if (back->empty()) {
-      popChunk();
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  void ChunkedList<T, ChunkSize, Allocator>::pop_back() {
+    if (Chunk *backPtr = get_sentinel()->prevChunk; backPtr->empty()) {
+      pop_chunk();
     } else {
-      back->template pop<DestroyValue>();
+      backPtr->pop_back();
     }
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
-  typename ChunkedList<T, ChunkSize, Allocator>::Iterator
-  ChunkedList<T, ChunkSize, Allocator>::erase(Iterator iterator) {
-    Iterator nextIt = ++iterator;
-    Iterator firstIt = iterator, secondIt = nextIt, endIt = end();
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  typename ChunkedList<T, ChunkSize, Allocator>::iterator ChunkedList<T, ChunkSize, Allocator>::erase(iterator it) {
+    iterator nextIt = ++it;
+    iterator firstIt = it, secondIt = nextIt, endIt = end();
 
     while (secondIt != endIt) {
       *firstIt = std::move(*secondIt);
@@ -256,65 +330,50 @@ namespace chunked_list {
     return nextIt;
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
-  typename ChunkedList<T, ChunkSize, Allocator>::ChunkIterator
-  ChunkedList<T, ChunkSize, Allocator>::erase(ChunkIterator iterator) {
-    Chunk *prev = iterator->prevChunk;
-    Chunk *next = iterator->nextChunk;
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  typename ChunkedList<T, ChunkSize, Allocator>::chunk_iterator
+  ChunkedList<T, ChunkSize, Allocator>::erase(chunk_iterator iterator) {
+    Chunk *prevPtr = iterator->prevChunk;
+    Chunk *nextPtr = iterator->nextChunk;
 
-    ChunkAllocatorTraits::destroy(chunkAllocator, iterator);
+    iterator->~Chunk();
+    ChunkAllocatorTraits::deallocate(chunk_allocator, iterator, 1);
 
-    if (prev) {
-      if (next) {
-        prev->nextChunk = next;
-        next->prevChunk = prev;
-      } else {
-        back = prev;
-      }
-    } else if (next) {
-      front = next;
+    prevPtr->nextChunk = nextPtr;
+    nextPtr->prevChunk = prevPtr;
 
-    } else {
-      ChunkAllocatorTraits::construct(chunkAllocator, iterator);
-    }
-
-    return ChunkIterator{next};
+    return chunk_iterator{nextPtr};
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
-  void ChunkedList<T, ChunkSize, Allocator>::popChunk() {
-    if (Chunk *prev = back->prevChunk; prev) {
-      ChunkAllocatorTraits::destroy(chunkAllocator, back);
-      ChunkAllocatorTraits::deallocate(chunkAllocator, back, 1);
-      back = prev;
-      --chunkCount;
-      back->pop();
-    } else {
-      back->clear();
-    }
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  void ChunkedList<T, ChunkSize, Allocator>::pop_chunk() {
+    Chunk *backPtr = get_sentinel()->prevChunk;
+    Chunk *prevPtr = backPtr->prevChunk;
+
+    prevPtr->nextChunk = get_sentinel();
+    get_sentinel()->prevChunk = prevPtr;
+
+    backPtr->~Chunk();
+    ChunkAllocatorTraits::deallocate(chunk_allocator, backPtr, 1);
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
-  template<bool DestroyFront>
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
   void ChunkedList<T, ChunkSize, Allocator>::clear() {
-    while (back != front) {
-      Chunk *prev = back->prevChunk;
-      ChunkAllocatorTraits::destroy(chunkAllocator, back);
-      ChunkAllocatorTraits::deallocate(chunkAllocator, back, 1);
-      back = prev;
+    Chunk *backPtr = get_sentinel()->prevChunk;
+
+    while (backPtr != sentinel) {
+      Chunk *prev = backPtr->prevChunk;
+      backPtr->~Chunk();
+      ChunkAllocatorTraits::deallocate(chunk_allocator, backPtr, 1);
+      backPtr = prev;
     }
 
-    if constexpr (DestroyFront) {
-      ChunkAllocatorTraits::destroy(chunkAllocator, front);
-      ChunkAllocatorTraits::construct(chunkAllocator, front);
-    } else {
-      front->clear();
-    }
-
-    chunkCount = 1;
+    chunk_count = 0;
+    get_sentinel()->prevChunk = sentinel;
+    get_sentinel()->nextChunk = sentinel;
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
   template<typename Compare, utility::SortType Sort>
   void ChunkedList<T, ChunkSize, Allocator>::sort() {
     using namespace utility;
@@ -334,22 +393,24 @@ namespace chunked_list {
     }
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
   size_t ChunkedList<T, ChunkSize, Allocator>::size() const {
-    return (chunkCount - 1) * ChunkSize + back->size();
+    return chunk_count == 0
+             ? 0
+             : (chunk_count - 1) * ChunkSize + reinterpret_cast<const Chunk *>(&sentinel)->prevChunk->size();
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
   bool ChunkedList<T, ChunkSize, Allocator>::empty() const {
-    return back->empty();
+    return chunk_count == 0;
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
   bool ChunkedList<T, ChunkSize, Allocator>::operator==(const ChunkedList &other) const {
     if (size() != other.size())
       return false;
 
-    for (ConstIterator thisIterator = begin(), otherIterator = other.begin(); thisIterator != end();
+    for (const_iterator thisIterator = cbegin(), otherIterator = other.begin(); thisIterator != cend();
          ++thisIterator, ++otherIterator)
       if (*thisIterator != *otherIterator)
         return false;
@@ -357,12 +418,12 @@ namespace chunked_list {
     return true;
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
   bool ChunkedList<T, ChunkSize, Allocator>::operator!=(const ChunkedList &other) const {
     if (size() != other.size())
       return true;
 
-    for (ConstIterator thisIterator = begin(), otherIterator = other.begin(); thisIterator != end();
+    for (const_iterator thisIterator = cbegin(), otherIterator = other.begin(); thisIterator != cend();
          ++thisIterator, ++otherIterator)
       if (*thisIterator != *otherIterator)
         return true;
@@ -370,7 +431,7 @@ namespace chunked_list {
     return false;
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
     requires utility::can_insert<std::ostream, T>
   std::ostream &operator<<(std::ostream &os, ChunkedList<T, ChunkSize, Allocator> &chunkedList) {
     os << '[';
@@ -388,7 +449,7 @@ namespace chunked_list {
     return os << ']';
   }
 
-  template<typename T, size_t ChunkSize, typename Allocator>
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
   template<typename OutputStream, typename DelimiterType>
     requires utility::can_insert<OutputStream, T> && utility::can_insert<OutputStream, DelimiterType> &&
              utility::can_stringify<OutputStream>
@@ -402,7 +463,7 @@ namespace chunked_list {
 
     OutputStream stream;
 
-    Iterator it = begin(), endIt = end();
+    iterator it = begin(), endIt = end();
 
     stream << *it;
     ++it;
@@ -416,50 +477,58 @@ namespace chunked_list {
   }
 } // namespace chunked_list
 
-template<typename T, size_t ChunkSize, typename Allocator>
-typename chunked_list::ChunkedList<T, ChunkSize, Allocator>::Iterator
-begin(chunked_list::ChunkedList<T, ChunkSize, Allocator> &chunkedList) noexcept {
-  return chunkedList.begin();
+template<
+  chunked_list::utility::chunked_list ChunkedListType,
+  chunked_list::utility::iterator_or_chunk_iterator<ChunkedListType> IteratorType = typename ChunkedListType::iterator>
+IteratorType begin(ChunkedListType &chunkedList) noexcept {
+  return chunkedList.template begin<IteratorType>();
 }
 
-template<typename T, size_t ChunkSize, typename Allocator>
-typename chunked_list::ChunkedList<T, ChunkSize, Allocator>::ConstIterator
-begin(const chunked_list::ChunkedList<T, ChunkSize, Allocator> &chunkedList) noexcept {
-  return chunkedList.begin();
+template<chunked_list::utility::chunked_list ChunkedListType,
+         chunked_list::utility::iterator_or_chunk_iterator_const<ChunkedListType> ConstIteratorType =
+           typename ChunkedListType::const_iterator>
+ConstIteratorType cbegin(const ChunkedListType &chunkedList) noexcept {
+  return chunkedList.template cbegin<ConstIteratorType>();
 }
 
-template<typename T, size_t ChunkSize, typename Allocator>
-typename chunked_list::ChunkedList<T, ChunkSize, Allocator>::Iterator
-end(chunked_list::ChunkedList<T, ChunkSize, Allocator> &chunkedList) noexcept {
-  return chunkedList.end();
+template<chunked_list::utility::chunked_list ChunkedListType,
+         typename ReverseIteratorType = typename ChunkedListType::reverse_iterator>
+  requires chunked_list::utility::iterator_or_chunk_iterator_reverse<ChunkedListType, ReverseIteratorType>
+ReverseIteratorType rbegin(ChunkedListType &chunkedList) noexcept {
+  return chunkedList.template rbegin<ReverseIteratorType>();
 }
 
-template<typename T, size_t ChunkSize, typename Allocator>
-typename chunked_list::ChunkedList<T, ChunkSize, Allocator>::ConstIterator
-end(const chunked_list::ChunkedList<T, ChunkSize, Allocator> &chunkedList) noexcept {
-  return chunkedList.end();
+template<chunked_list::utility::chunked_list ChunkedListType,
+         chunked_list::utility::iterator_or_chunk_iterator_const_reverse<ChunkedListType> ConstReverseIteratorType =
+           typename ChunkedListType::const_reverse_iterator>
+ConstReverseIteratorType crbegin(const ChunkedListType &chunkedList) noexcept {
+  return chunkedList.template crbegin<ConstReverseIteratorType>();
 }
 
-template<typename T, size_t ChunkSize, typename Allocator>
-typename chunked_list::ChunkedList<T, ChunkSize, Allocator>::Iterator
-begin(typename chunked_list::ChunkedList<T, ChunkSize, Allocator>::Chunk &chunk) noexcept {
-  return chunk.begin();
+template<
+  chunked_list::utility::chunked_list ChunkedListType,
+  chunked_list::utility::iterator_or_chunk_iterator<ChunkedListType> IteratorType = typename ChunkedListType::iterator>
+IteratorType end(ChunkedListType &chunkedList) noexcept {
+  return chunkedList.template end<IteratorType>();
 }
 
-template<typename T, size_t ChunkSize, typename Allocator>
-typename chunked_list::ChunkedList<T, ChunkSize, Allocator>::ConstIterator
-begin(const typename chunked_list::ChunkedList<T, ChunkSize, Allocator>::Chunk &chunk) noexcept {
-  return chunk.begin();
+template<chunked_list::utility::chunked_list ChunkedListType,
+         chunked_list::utility::iterator_or_chunk_iterator_const<ChunkedListType> ConstIteratorType =
+           typename ChunkedListType::const_iterator>
+ConstIteratorType cend(const ChunkedListType &chunkedList) noexcept {
+  return chunkedList.template cend<ConstIteratorType>();
 }
 
-template<typename T, size_t ChunkSize, typename Allocator>
-typename chunked_list::ChunkedList<T, ChunkSize, Allocator>::Iterator
-end(typename chunked_list::ChunkedList<T, ChunkSize, Allocator>::Chunk &chunk) noexcept {
-  return chunk.end();
+template<chunked_list::utility::chunked_list ChunkedListType,
+         chunked_list::utility::iterator_or_chunk_iterator_reverse<ChunkedListType> ReverseIteratorType =
+           typename ChunkedListType::reverse_iterator>
+ReverseIteratorType rend(ChunkedListType &chunkedList) noexcept {
+  return chunkedList.template rend<ReverseIteratorType>();
 }
 
-template<typename T, size_t ChunkSize, typename Allocator>
-typename chunked_list::ChunkedList<T, ChunkSize, Allocator>::ConstIterator
-end(const typename chunked_list::ChunkedList<T, ChunkSize, Allocator>::Chunk &chunk) noexcept {
-  return chunk.end();
+template<chunked_list::utility::chunked_list ChunkedListType,
+         chunked_list::utility::iterator_or_chunk_iterator_const_reverse<ChunkedListType> ConstReverseIteratorType =
+           typename ChunkedListType::const_reverse_iterator>
+ConstReverseIteratorType crend(const ChunkedListType &chunkedList) noexcept {
+  return chunkedList.template crend<ConstReverseIteratorType>();
 }

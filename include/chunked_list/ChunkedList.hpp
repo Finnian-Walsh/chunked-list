@@ -9,8 +9,11 @@
 #include "detail/utility.hpp"
 
 namespace chunked_list {
-  template<typename, size_t, typename>
+  template<typename, size_t, template<typename> typename>
   class ChunkedListAccessor;
+
+  template<typename, bool>
+  class ChunkedListSlice;
 
   /**
    * @class ChunkedList
@@ -23,45 +26,61 @@ namespace chunked_list {
    * @tparam ChunkSize The number of elements in each chunk, with a default value of 32
    * @tparam Allocator The allocator used for the allocation and deallocation of data
    */
-  template<typename T, size_t ChunkSize = 32, typename Allocator = std::allocator<T>>
+  template<typename T, size_t ChunkSize = 32, template<typename> typename Allocator = std::allocator>
   class ChunkedList {
       static_assert(ChunkSize > 0, "Chunk Size must be greater than 0");
 
-      friend class ChunkedListAccessor<T, ChunkSize, Allocator>;
+      template<typename, size_t, template<typename> typename>
+      friend class ChunkedListAccessor;
 
-      size_t chunkCount{1};
+      template<typename, bool>
+      friend class ChunkedListSlice;
 
-      using AllocatorTraits = std::allocator_traits<Allocator>;
+      template<bool>
+      class generic_iterator;
 
-      template<typename ChunkT, typename ValueT>
-      class GenericIterator;
+      size_t chunk_count;
+
+      using ValueAllocator = Allocator<T>;
+
+      using ValueAllocatorTraits = std::allocator_traits<ValueAllocator>;
+
+    public:
+      /**
+       * @brief The non-const iterator class used to iterate through each value of every chunk in the chunked list
+       */
+      using iterator = generic_iterator<true>;
+
+      /**
+       * @brief The const iterator class used to iterate through each value of every chunk in the chunked list
+       */
+      using const_iterator = generic_iterator<false>;
+
+      using reverse_iterator = std::reverse_iterator<iterator>;
+      using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
       class Chunk {
-          Allocator valueAllocator;
-
-          using ArrayAllocator = typename AllocatorTraits::template rebind_alloc<T[ChunkSize]>;
-
-          using ArrayAllocatorTraits = std::allocator_traits<ArrayAllocator>;
-
-          ArrayAllocator arrayAllocator;
-
-          T data[ChunkSize]{};
+          ValueAllocator value_allocator;
 
           size_t nextIndex{0};
 
-          using Iterator = GenericIterator<Chunk, T>;
-          using ConstIterator = GenericIterator<const Chunk, const T>;
+        public:
+          Chunk *prevChunk{nullptr};
+          Chunk *nextChunk{nullptr};
+
+        private:
+          alignas(T) std::byte array[ChunkSize][sizeof(T)]{};
 
         public:
           explicit Chunk(Chunk *prevChunk, Chunk *nextChunk = nullptr);
 
-          Chunk(const T *array, size_t size, Chunk *prevChunk = nullptr, Chunk *nextChunk = nullptr);
+          Chunk(const T *pointer, size_t size, Chunk *prevChunk = nullptr, Chunk *nextChunk = nullptr);
 
-          explicit Chunk(T value, Chunk *prevChunk = nullptr, Chunk *nextChunk = nullptr);
+          explicit Chunk(T &&value, Chunk *prevChunk = nullptr, Chunk *nextChunk = nullptr);
 
           Chunk() = default;
 
-          ~Chunk() = default;
+          ~Chunk();
 
           /**
            * @brief Adds the value type publicly to the chunk for type deduction
@@ -73,30 +92,29 @@ namespace chunked_list {
            */
           static constexpr size_t chunk_size = ChunkSize;
 
-          void push(T value);
+          T *data();
+
+          const T *data() const;
+
+          void push_back(T &&value);
 
           template<typename... Args>
             requires utility::can_construct<T, Args...>
-          void emplace(Args &&...args);
+          void emplace_back(Args &&...args);
 
-          template<bool DestroyValue = true>
-          void pop();
+          void pop_back();
 
-          template<bool DestroyData = true>
           void clear();
 
           /**
-           * @brief returns the chunk offset chunks ahead of the given chunk without accounting for overflows
+           * @return the chunk offset chunks ahead of the given chunk without accounting for overflows
            */
-          Chunk &operator+(size_t offset);
+          Chunk &operator+(size_t n);
 
           /**
-           * @brief returns the chunk offset chunks behind the given chunk without accounting for overflows
+           * @return returns the chunk offset chunks behind the given chunk without accounting for overflows
            */
-          Chunk &operator-(size_t offset);
-
-          Chunk *nextChunk{nullptr};
-          Chunk *prevChunk{nullptr};
+          Chunk &operator-(size_t n);
 
           size_t size() const;
 
@@ -114,63 +132,67 @@ namespace chunked_list {
 
           bool operator!=(const Chunk &other) const;
 
-          Iterator begin();
+          iterator begin();
 
-          ConstIterator begin() const;
+          const_iterator cbegin() const;
 
-          Iterator end();
+          reverse_iterator rbegin();
 
-          ConstIterator end() const;
+          const_reverse_iterator crbegin() const;
+
+          iterator end();
+
+          const_iterator cend() const;
+
+          reverse_iterator rend();
+
+          const_reverse_iterator crend() const;
       };
 
-      using ChunkAllocator = typename AllocatorTraits::template rebind_alloc<Chunk>;
+    private:
+      using ChunkAllocator = Allocator<Chunk>;
 
       using ChunkAllocatorTraits = std::allocator_traits<ChunkAllocator>;
 
-      ChunkAllocator chunkAllocator{};
+      ChunkAllocator chunk_allocator{};
 
       /**
-       * @brief The first chunk in the chunked list
+       * @brief The sentinel chunk in the chunked list
        */
-      Chunk *front{nullptr};
+      alignas(Chunk) std::byte sentinel[sizeof(Chunk)]{};
 
-      /**
-       * @brief The most recent chunk in the chunked list
-       */
-      Chunk *back{nullptr};
+      constexpr Chunk *get_sentinel();
 
-      /**
-       * @brief simply pushes a chunk to the back, without mutating the chunk count
-       */
-      template<bool PrevAssigned = false>
-      void pushChunk(Chunk *chunk);
+      constexpr const Chunk *get_sentinel() const;
 
       /**
        * @brief A generic chunk iterator for the chunk iterator and const chunk iterator
-       * @tparam ChunkT The type of chunk that the iterator will reference (const or non-const)
+       * @tparam Mutable Whether the chunk referenced by the iterator can be mutated
        */
-      template<typename ChunkT>
-      class GenericChunkIterator {
+      template<bool Mutable>
+      class generic_chunk_iterator {
+          using ChunkT = std::conditional_t<Mutable, Chunk, const Chunk>;
+
           ChunkT *chunk{nullptr};
 
         public:
           template<typename ChunkIteratorT>
             requires utility::chunk_iterator<ChunkedList, ChunkIteratorT>
-          explicit GenericChunkIterator(ChunkIteratorT chunkIterator);
+          explicit generic_chunk_iterator(ChunkIteratorT chunkIterator);
 
           /**
            * @brief The pointer constructor for GenericChunkIterator
            * @param chunkPtr A pointer to a ChunkT object
            */
-          explicit GenericChunkIterator(ChunkT *chunkPtr);
+          explicit generic_chunk_iterator(ChunkT *chunkPtr);
 
           /**
            * @brief The reference constructor for GenericChunkIterator
            * @param chunkRef A reference to a ChunkT object
            */
-          explicit GenericChunkIterator(ChunkT &chunkRef);
+          explicit generic_chunk_iterator(ChunkT &chunkRef);
 
-          ~GenericChunkIterator() = default;
+          ~generic_chunk_iterator() = default;
 
           // stl compatibility
 
@@ -184,71 +206,71 @@ namespace chunked_list {
            * @brief Prefix increment operator, incrementing the chunk pointer by one
            * @return The incremented GenericIterator
            */
-          GenericChunkIterator operator++();
+          generic_chunk_iterator operator++();
 
           /**
            * @brief Postfix increment operator, incrementing the chunk pointer by one
            * @return The original GenericIterator
            */
-          GenericChunkIterator operator++(int);
+          generic_chunk_iterator operator++(int);
 
           /**
            * @brief Prefix decrement operator, decrement the chunk pointer by one
            * @return The decremented GenericIterator
            */
-          GenericChunkIterator operator--();
+          generic_chunk_iterator operator--();
 
           /**
            * @brief Postfix decrement operator, decrementing the chunk pointer by one
            * @return The original GenericIterator
            */
-          GenericChunkIterator operator--(int);
+          generic_chunk_iterator operator--(int);
 
           /**
            * @param offset The number of positions to advance the iterator forwards by
            * @return The iterator advanced forward by the given number of positions
            */
-          GenericChunkIterator operator+(size_t offset) const;
+          generic_chunk_iterator operator+(size_t offset) const;
 
           /**
            * @param offset The number of positions to move the iterator backwards by
            * @return The iterator moved backwards by the given number of positions
            */
-          GenericChunkIterator operator-(size_t offset) const;
+          generic_chunk_iterator operator-(size_t offset) const;
 
           /**
            * @brief Advances the given iterator forwards by a given number of positions
            * @param offset The number of positions to advance the iterator by
            * @return The iterator advanced forward by the given number of positions
            */
-          GenericChunkIterator operator+=(size_t offset);
+          generic_chunk_iterator operator+=(size_t offset);
 
           /**
            * @brief Moves the given iterator backwards by a given number of positions
            * @param offset The number of positions to move the iterator by
            * @return The iterator moved backward by the given number of positions
            */
-          GenericChunkIterator operator-=(size_t offset);
+          generic_chunk_iterator operator-=(size_t offset);
 
           /**
            * @brief Compares the given object with another for equality
-           * @tparam ChunkIteratorT The type of object which will be compared to the given iterator
+           * @tparam ChunkIteratorType The type of object which will be compared to the given iterator
            * @param other The object which will be compared to the given iterator
            * @return Whether the chunk pointer of the given object is equal to the chunk pointer of the other
            */
-          template<typename ChunkIteratorT>
-            requires utility::chunk_iterator<ChunkedList, ChunkIteratorT>
-          bool operator==(ChunkIteratorT other) const;
+          template<typename ChunkIteratorType>
+            requires utility::chunk_iterator<ChunkedList, ChunkIteratorType>
+          bool operator==(const ChunkIteratorType &other) const;
 
           /**
            * @brief Compares the given object with another for inequality
-           * @tparam ChunkIteratorT The type of object which will be compared against the given iterator
+           * @tparam ChunkIteratorType The type of object which will be compared against the given iterator
            * @param other The object which will be compared against the given iterator
            * @return Whether the chunk pointer of the given object is unequal to the chunk pointer of the other
            */
-          template<typename ChunkIteratorT>
-            requires utility::chunk_iterator<ChunkedList, ChunkIteratorT>
-          bool operator!=(ChunkIteratorT other) const;
+          template<typename ChunkIteratorType>
+            requires utility::chunk_iterator<ChunkedList, ChunkIteratorType>
+          bool operator!=(const ChunkIteratorType &other) const;
 
           /**
            * @brief Dereferences the iterator
@@ -274,6 +296,10 @@ namespace chunked_list {
            */
           const ChunkT *operator->() const;
 
+          ChunkT &operator[](size_t n);
+
+          const ChunkT &operator[](size_t n) const;
+
           /**
            * @brief Allows the iterator to be converted to a chunk pointer easily
            */
@@ -287,38 +313,39 @@ namespace chunked_list {
 
       /**
        * @brief A generic iterator for the iterator and const iterator
-       * @tparam ChunkT The type of chunk that the iterator will reference (const or non-const)
-       * @tparam ValueT The type of value that the iterator will reference (const or non-const)
+       * @tparam Mutable Whether the value referenced by the iterator can be mutated
        */
-      template<typename ChunkT, typename ValueT>
-      class GenericIterator {
-          using ChunkIteratorT = GenericChunkIterator<ChunkT>;
-          using ConstChunkIteratorT = GenericChunkIterator<const ChunkT>;
+      template<bool Mutable>
+      class generic_iterator {
+          using ChunkT = std::conditional_t<Mutable, Chunk, const Chunk>;
+          using ValueT = std::conditional_t<Mutable, T, const T>;
 
-          ChunkIteratorT chunkIterator{};
+          using chunk_iterator_type = generic_chunk_iterator<Mutable>;
+          using const_chunk_iterator_type = generic_chunk_iterator<false>;
+
+          chunk_iterator_type chunkIterator{};
           size_t index{0};
 
         public:
-          template<typename IteratorT>
-            requires utility::iterator<ChunkedList, IteratorT>
-          explicit GenericIterator(IteratorT iterator);
+          template<utility::iterator<ChunkedList> IteratorType>
+          explicit generic_iterator(IteratorType iterator);
 
           /**
            * @brief Initializes the iterator with a specified chunk pointer and optional index
            */
-          explicit GenericIterator(ChunkT *chunkPtr, size_t index = 0);
+          explicit generic_iterator(ChunkT *chunkPtr, size_t index = 0);
 
           /**
            * @brief Initializes the iterator with a specified chunk reference and optional index
            */
-          explicit GenericIterator(ChunkT &chunkRef, size_t index = 0);
+          explicit generic_iterator(ChunkT &chunkRef, size_t index = 0);
 
           /**
            * @brief Initializes the iterator with a specified chunk iterator and optional index
            */
-          explicit GenericIterator(ChunkIteratorT chunkIterator, size_t index = 0);
+          explicit generic_iterator(chunk_iterator_type chunkIterator, size_t index = 0);
 
-          ~GenericIterator() = default;
+          ~generic_iterator() = default;
 
           // stl compatibility
           using value_type = ValueT;
@@ -332,78 +359,70 @@ namespace chunked_list {
            * which case incrementing the chunkIterator member by one
            * @return The incremented generic iterator
            */
-          GenericIterator operator++();
+          generic_iterator operator++();
 
           /**
            * @brief Prefix increment operator, incrementing the index by one unless it is equal to the ChunkSize, in
            * which case incrementing the chunkIterator member by one
            * @return The original generic iterator
            */
-          GenericIterator operator++(int);
+          generic_iterator operator++(int);
 
           /**
            * @brief Prefix decrement operator, decrementing the index by one unless it is equal to 0, in which case
            * decrementing the chunkIterator member by one
            * @return The decremented generic iterator
            */
-          GenericIterator operator--();
+          generic_iterator operator--();
 
           /**
            * @brief Postfix decrement operator, decrementing the index by one unless it is equal to 0, in which case
            * decrementing the chunkIterator member by one
            * @return The original generic iterator
            */
-          GenericIterator operator--(int);
+          generic_iterator operator--(int);
 
           /**
-           * @brief Returns the given iterator advanced forward a given number of positions
-           * @param offset The number of positions to advance the iterator by
+           * @param n The number of positions to advance the iterator by
            * @return The iterator advanced forward by a given number of positions
            */
-          GenericIterator operator+(size_t offset);
+          generic_iterator operator+(size_t n);
 
           /**
-           * @brief Returns the given iterator moved backwards a given number of positions
-           * @param offset The number of positions to move the iterator by
+           * @param n The number of positions to move the iterator by
            * @return The iterator moved backward by a given number of positions
            */
-          GenericIterator operator-(size_t offset);
+          generic_iterator operator-(size_t n);
 
           /**
-           * @brief Advances the given iterator forwards by a given number of positions
-           * @param offset The number of positions to advance the iterator by
+           * @param n The number of positions to advance the iterator by
            * @return The iterator advanced forward by the given number of positions
            */
-          GenericIterator operator+=(size_t offset);
+          generic_iterator operator+=(size_t n);
 
           /**
-           * @brief Moves the given iterator backwards by a given number of positions
-           * @param offset The number of positions to move the iterator by
+           * @param n The number of positions to move the iterator by
            * @return The iterator moved backward by the given number of positions
            */
-          GenericIterator operator-=(size_t offset);
+          generic_iterator operator-=(size_t n);
 
           /**
-           * @brief Compares the given object with another for equality
-           * @tparam IteratorT The type of object which will be compared to the given iterator
-           * @param other The object which will be compared to the given iterator
-           * @return Whether the index and chunk iterator of the given object are equal to the index and chunk iterator
-           * of the other
+           * @tparam IteratorType The type of the other object
+           * @param other The object which will be compared
+           * @return Whether the values are equal
            */
-          template<typename IteratorT>
-            requires utility::iterator<ChunkedList, IteratorT>
-          bool operator==(IteratorT other) const;
+          template<typename IteratorType>
+            requires utility::iterator<ChunkedList, IteratorType>
+          bool operator==(const IteratorType &other) const;
 
           /**
-           * @brief Compares the given object with another for inequality
-           * @tparam IteratorT The type of object which will be compared against the given iterator
-           * @param other The object which will be compared against the given iterator
-           * @return Whether either the index or chunk iterator of the given object is unequal to the index or chunk
-           * iterator of the other
+           * @tparam IteratorType The type of the other object
+           * @param other The object which will be compared
+           * @return Whether the values are unequal
            */
-          template<typename IteratorT>
-            requires utility::iterator<ChunkedList, IteratorT>
-          bool operator!=(IteratorT other) const;
+          template<typename IteratorType>
+            requires utility::iterator<ChunkedList, IteratorType>
+          bool operator!=(const IteratorType &other) const;
 
           /**
            * @brief Dereferences the iterator
@@ -430,99 +449,39 @@ namespace chunked_list {
            */
           const ValueT *operator->() const;
 
+          ValueT &operator[](size_t n);
+
+          const ValueT &operator[](size_t n) const;
+
           /**
            * @brief A get function, returning the private index member
            * @return The index stored by the given iterator
            */
-          size_t getIndex() const;
+          size_t get_index() const;
 
           /**
            * @brief A get function, returning a reference to the stored chunk
            * @return The chunk stored by the chunk iterator of the given iterator
            */
-          ChunkT &getChunk();
+          ChunkT &get_chunk();
 
           /**
            * @brief A get function, returning a constant reference to the stored chunk
            * @return The chunk stored by the chunk iterator of the given iterator (const)
            */
-          const ChunkT &getChunk() const;
+          const ChunkT &get_chunk() const;
 
           /**
            * @brief A get function, returning a copy of the private chunk iterator member
            * @return The chunkIterator stored by the given iterator
            */
-          ChunkIteratorT getChunkIterator();
+          chunk_iterator_type get_chunk_iterator();
 
           /**
-           * @brief A get function, returning a constant copy of the private chunk iterator member
+           * @brief A get function, returning a constant version of the private chunk iterator member
            * @return The chunkIterator stored by the given iterator (const)
            */
-          ConstChunkIteratorT getChunkIterator() const;
-      };
-
-      /**
-       * @brief A generic slice for referencing parts of the chunked list
-       * @tparam ChunkT The type of chunk that the iterator will reference (const or non-const)
-       * @tparam ValueT The type of value that the iterator will reference (const or non-const)
-       */
-      template<typename ChunkT, typename ValueT>
-      class GenericSlice {
-          using ChunkIteratorType = GenericChunkIterator<ChunkT>;
-          using IteratorType = GenericIterator<ChunkT, ValueT>;
-          using ConstIteratorType = GenericIterator<const ChunkT, const ValueT>;
-
-          IteratorType startIterator;
-          IteratorType endIterator;
-
-        public:
-          /**
-           * @brief Constructs a slice of a chunked list from the start iterator to the last iterator
-           * (inclusive-exclusive)
-           * @param start The iterator for the start of the slice (inclusive)
-           * @param end The iterator for the last of the slice (exclusive)
-           */
-          template<typename StartIteratorT, typename EndIteratorT>
-            requires utility::are_iterators<ChunkedList, StartIteratorT, EndIteratorT>
-          GenericSlice(StartIteratorT start, EndIteratorT end);
-
-          template<typename StartChunkIteratorT, typename EndChunkIteratorT>
-            requires utility::are_chunk_iterators<ChunkedList, StartChunkIteratorT, EndChunkIteratorT>
-          GenericSlice(StartChunkIteratorT start, EndChunkIteratorT last);
-
-          ~GenericSlice() = default;
-
-          ValueT &operator[](size_t index);
-
-          const ValueT &operator[](size_t index) const;
-
-          /**
-           * @brief Compares the given object with another for equality
-           * @tparam SliceT The type of object which will be compared to the given slice
-           * @param other The object which will be compared to the given slice
-           * @return Whether the iterator of the given object is equal to the iterator of the other object
-           */
-          template<typename SliceT>
-            requires utility::is_slice<ChunkedList, SliceT>
-          bool operator==(SliceT other) const;
-
-          /**
-           * @brief Compares the given object with another for inequality
-           * @tparam SliceT The type of object which will be compared against the given slice
-           * @param other The object which will be compared against the given slice
-           * @return Whether the iterator of the given object is equal to the iterator of the other object
-           */
-          template<typename SliceT>
-            requires utility::is_slice<ChunkedList, SliceT>
-          bool operator!=(SliceT other) const;
-
-          IteratorType begin();
-
-          ConstIteratorType begin() const;
-
-          IteratorType end();
-
-          ConstIteratorType end() const;
+          const_chunk_iterator_type cget_chunk_iterator() const;
       };
 
     public:
@@ -574,37 +533,26 @@ namespace chunked_list {
       /**
        * @brief Adds the allocator type publicly to the chunked list
        */
-      using allocator_type = Allocator;
+      template<typename U>
+      using allocator_type = Allocator<U>;
 
       /**
        * @brief The non-const chunk iterator class used to iterate through each chunk in the chunked list
        */
-      using ChunkIterator = GenericChunkIterator<Chunk>;
+      using chunk_iterator = generic_chunk_iterator<true>;
 
       /**
        * @brief The const chunk iterator class used to iterate through each chunk in the chunked list
        */
-      using ConstChunkIterator = GenericChunkIterator<const Chunk>;
+      using const_chunk_iterator = generic_chunk_iterator<false>;
 
-      /**
-       * @brief The non-const iterator class used to iterate through each value of every chunk in the chunked list
-       */
-      using Iterator = GenericIterator<Chunk, T>;
+      using reverse_chunk_iterator = std::reverse_iterator<chunk_iterator>;
 
-      /**
-       * @brief The const iterator class used to iterate through each value of every chunk in the chunked list
-       */
-      using ConstIterator = GenericIterator<const Chunk, const T>;
+      using const_reverse_chunk_iterator = std::reverse_iterator<const_chunk_iterator>;
 
-      /**
-       * @brief The mutable variation of the slice class
-       */
-      using Slice = GenericSlice<Chunk, T>;
+      using mutable_slice = ChunkedListSlice<ChunkedList, true>;
 
-      /**
-       * @brief The immutable variation of the slice class
-       */
-      using ConstSlice = GenericSlice<const Chunk, const T>;
+      using immutable_slice = ChunkedListSlice<ChunkedList, false>;
 
       /**
        * @brief Chunked list indexing, of O(n) search complexity
@@ -635,94 +583,116 @@ namespace chunked_list {
       const T &at(size_t index) const;
 
       /**
-       * @brief Returns an iterator to the first element
-       * @returns An iterator referencing the first element in the chunked list
+       * @return An iterator referencing the first element in the chunked list
        */
-      Iterator begin();
+      template<typename IteratorType = iterator>
+        requires utility::iterator_or_chunk_iterator<ChunkedList, IteratorType>
+      IteratorType begin();
+
+      template<typename IteratorType = const_iterator>
+        requires utility::iterator_or_chunk_iterator_const<ChunkedList, IteratorType>
+      IteratorType begin() const;
 
       /**
-       * @brief Returns a const iterator to the first element
-       * @returns A const iterator referencing the first element in the chunked list
+       * @return A const iterator referencing the first element in the chunked list
        */
-      ConstIterator begin() const;
+      template<typename IteratorType = const_iterator>
+        requires utility::iterator_or_chunk_iterator_const<ChunkedList, IteratorType>
+      IteratorType cbegin() const;
+
+      template<typename ReverseIteratorType = reverse_iterator>
+        requires utility::iterator_or_chunk_iterator_reverse<ChunkedList, ReverseIteratorType>
+      ReverseIteratorType rbegin();
+
+      template<typename ReverseIteratorType = const_reverse_iterator>
+        requires utility::iterator_or_chunk_iterator_const_reverse<ChunkedList, ReverseIteratorType>
+      ReverseIteratorType rbegin() const;
+
+      template<typename ReverseIteratorType = const_reverse_iterator>
+        requires utility::iterator_or_chunk_iterator_const_reverse<ChunkedList, ReverseIteratorType>
+      ReverseIteratorType crbegin() const;
 
       /**
-       * @brief Returns an iterator to the element after the last
-       * @returns An Iterator referencing the element after the last in the chunked list
+       * @returns An iterator referencing the element after the last in the chunked list
        */
-      Iterator end();
+      template<typename IteratorType = iterator>
+        requires utility::iterator_or_chunk_iterator<ChunkedList, IteratorType>
+      IteratorType end();
+
+      template<typename IteratorType = const_iterator>
+        requires utility::iterator_or_chunk_iterator_const<ChunkedList, IteratorType>
+      IteratorType end() const;
 
       /**
-       * @brief Returns a const iterator to the element after the last
        * @returns A const iterator referencing the element after the last in the chunked list
        */
-      ConstIterator end() const;
+      template<typename IteratorType = const_iterator>
+        requires utility::iterator_or_chunk_iterator_const<ChunkedList, IteratorType>
+      IteratorType cend() const;
 
       /**
-       * @brief Returns a chunk iterator to the first chunk
-       * @returns A const iterator referencing the first chunk in the chunked list
+       * @returns An iterator referencing the element after the last in the chunked list
        */
-      ChunkIterator beginChunk();
+      template<typename ReverseIteratorType = reverse_iterator>
+        requires utility::iterator_or_chunk_iterator_reverse<ChunkedList, ReverseIteratorType>
+      ReverseIteratorType rend();
+
+      template<typename ReverseIteratorType = const_reverse_iterator>
+        requires utility::iterator_or_chunk_iterator_const_reverse<ChunkedList, ReverseIteratorType>
+      ReverseIteratorType rend() const;
 
       /**
-       * @brief Returns a const chunk iterator to the first chunk
-       * @returns A const chunk iterator referencing the first chunk in the chunked list
+       * @returns A const iterator referencing the element after the last in the chunked list
        */
-      ConstChunkIterator beginChunk() const;
+      template<typename ReverseIteratorType = const_reverse_iterator>
+        requires utility::iterator_or_chunk_iterator_const_reverse<ChunkedList, ReverseIteratorType>
+      ReverseIteratorType crend() const;
 
       /**
-       * @brief Returns a chunk iterator to the first chunk
-       * @returns A chunk iterator referencing the first chunk in the chunked list
-       */
-      ChunkIterator endChunk();
-
-      /**
-       * @brief Returns a const chunk iterator to a null chunk
-       * @returns A chunk iterator not referencing any chunk
-       */
-      ConstChunkIterator endChunk() const;
-
-      /**
-       * @brief Returns a mutable portion of the chunked list from the start to end
        * @param startIndex The index for the start of the slice (inclusive)
        * @param endIndex The index for the end of the slice (exclusive)
        * @return An in-place slice which references the start index to the end index (inclusive-exclusive)
        */
-      Slice slice(size_t startIndex, size_t endIndex);
+      mutable_slice slice(size_t startIndex, size_t endIndex);
 
       /**
-       * @brief Returns a const portion of the chunked list from the start to end
        * @param startIndex The index for the start of the slice (inclusive)
        * @param endIndex The index for the last of the slice (exclusive)
        * @return An in-place constant slice which references the start index to the end index (inclusive-exclusive)
        */
-      ConstSlice slice(size_t startIndex, size_t endIndex) const;
+      immutable_slice slice(size_t startIndex, size_t endIndex) const;
+
+      immutable_slice cslice(size_t startIndex, size_t endIndex) const;
 
       /**
-       * @brief Returns a portion of the chunked list from the start iterator to the end iterator
        * @param start The iterator for the start of the slice (inclusive)
        * @param end The iterator for the end of the slice (exclusive)
        * @return An in-place slice which references the start iterator to the end iterator (inclusive-exclusive)
        */
       template<typename StartIteratorT, typename EndIteratorT>
         requires utility::all_iterators_or_chunk_iterators<ChunkedList, StartIteratorT, EndIteratorT>
-      Slice slice(StartIteratorT start, EndIteratorT end);
+      mutable_slice slice(StartIteratorT start, EndIteratorT end);
 
       /**
-       * @brief Returns a const portion of the chunked list from the start iterator to the end iterator
        * @param start The iterator for the start of the slice (inclusive)
        * @param end The iterator for the end of the slice (exclusive)
        * @return An in-place slice which references the start iterator to the end iterator (inclusive-exclusive)
        */
       template<typename StartIteratorT, typename EndIteratorT>
         requires utility::all_iterators_or_chunk_iterators<ChunkedList, StartIteratorT, EndIteratorT>
-      ConstSlice slice(StartIteratorT start, EndIteratorT end) const;
+      immutable_slice slice(StartIteratorT start, EndIteratorT end) const;
+
+      template<typename StartIteratorT, typename EndIteratorT>
+        requires utility::all_iterators_or_chunk_iterators<ChunkedList, StartIteratorT, EndIteratorT>
+      immutable_slice cslice(StartIteratorT start, EndIteratorT end) const;
 
       /**
-       * @brief Pushes an element to the front of the chunked list
+       * @brief Pushes an element to the back of the chunked list
        * @param value The element which will be pushed to the back of the chunked list
        */
-      void push(T value);
+      void push_back(T &&value);
+
+      void push_back(const T &value);
 
       /**
        * @brief Pushes an element to the chunked list, but constructs it within the emplace function
@@ -731,39 +701,35 @@ namespace chunked_list {
        */
       template<typename... Args>
         requires utility::can_construct<T, Args...>
-      void emplace(Args &&...args);
+      void emplace_back(Args &&...args);
 
       /**
        * @brief Pops the most recent item from the back chunk of the chunked list
-       * @tparam DestroyValue Whether the value that is popped should be destroyed
        */
-      template<bool DestroyValue = true>
-      void pop();
+      void pop_back();
 
       /**
        * @brief Erases an item from the chunked list using an iterator
-       * @param iterator The iterator to be erased
+       * @param it The iterator to be erased
        * @return An iterator referencing the item after the one erased
        */
-      Iterator erase(Iterator iterator);
+      iterator erase(iterator it);
 
       /**
        * @brief Erases a chunk from the chunked list using a chunk iterator
        * @param iterator the chunk iterator to be erased
        * @return A chunk iterator referencing the chunk after the one erased
        */
-      ChunkIterator erase(ChunkIterator iterator);
+      chunk_iterator erase(chunk_iterator iterator);
 
       /**
        * @brief Pops the back (most recent) chunk from the chunked list
        */
-      void popChunk();
+      void pop_chunk();
 
       /**
        * @brief Clears the chunked list
-       * @tparam DestroyFront Whether the front chunk should be fully cleared
        */
-      template<bool DestroyFront = true>
       void clear();
 
       /**
@@ -775,26 +741,22 @@ namespace chunked_list {
       void sort();
 
       /**
-       * @brief Returns the total number of elements stored in the chunked list
        * @return The number of (chunks - 1) multiplied by the chunk size, plus the back next index of the back chunk
        */
       size_t size() const;
 
       /**
-       * @brief Returns whether the chunked list is empty
        * @return Whether the front chunk's next index is 0
        */
       bool empty() const;
 
       /**
-       * @brief Returns whether the given chunked list is equal to the other
        * @param other The chunked list to compare the given one to for equality
        * @return Whether each chunk has the same elements and the lists are both of the same size
        */
       bool operator==(const ChunkedList &other) const;
 
       /**
-       * @brief Returns whether the given chunked list is unequal to the other, regarding the stored elements
        * @param other The chunked list to compare the given one against for inequality
        * @return Whether at least one element is unequal between both lists or the lists are of different sizes
        */
@@ -823,109 +785,100 @@ namespace chunked_list {
       auto concat(DelimiterType delimiter = ", ") -> utility::DeduceStreamStringType<OutputStream>;
   };
 } // namespace chunked_list
+//
+// /**
+//  * @tparam T The type stored in the chunked list
+//  * @tparam ChunkSize The size of each chunk within the ch
+//  * @tparam Allocator The allocator used for the allocation and deallocation of data
+//  * @param chunkedList A reference to the container object
+//  * @returns An iterator referencing the first element in the container
+//  */
+// template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+// typename chunked_list::ChunkedList<T, ChunkSize>::iterator
+// begin(chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
+//
+// /**
+//  * @tparam T The type stored in the chunked list
+//  * @tparam ChunkSize The size of each chunk within the chunked list
+//  * @tparam Allocator The allocator used for the allocation and deallocation of data
+//  * @param chunkedList A const reference to the chunked list object
+//  * @returns A const iterator referencing the first element of the chunked list
+//  */
+// template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+// typename chunked_list::ChunkedList<T, ChunkSize>::const_iterator
+// begin(const chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
+//
+// /**
+//  * @tparam T The type stored in the chunked list
+//  * @tparam ChunkSize The size of each chunk within the container
+//  * @tparam Allocator The allocator used for the allocation and deallocation of data
+//  * @param chunkedList A reference to the chunked list object
+//  * @returns A const iterator referencing the end element of the chunked list
+//  */
+// template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+// typename chunked_list::ChunkedList<T, ChunkSize>::iterator
+// end(chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
+//
+// /**
+//  * @tparam T The type stored in the container
+//  * @tparam ChunkSize The size of each chunk within the chunked list
+//  * @tparam Allocator The allocator used for the allocation and deallocation of data
+//  * @param chunkedList A const reference to the chunked list object
+//  * @returns An iterator referencing the end element of the chunked list
+//  */
+// template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+// typename chunked_list::ChunkedList<T, ChunkSize>::const_iterator
+// end(const chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
+//
+// /**
+//  * @tparam T The type stored in the chunked list
+//  * @tparam ChunkSize The size of each chunk within the chunked list
+//  * @tparam Allocator The allocator used for the allocation and deallocation of data
+//  * @param chunk A reference to the chunk object
+//  * @return An iterator referencing the first element of the chunk
+//  */
+// template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+// typename chunked_list::ChunkedList<T, ChunkSize>::iterator
+// begin(typename chunked_list::ChunkedList<T, ChunkSize>::Chunk &chunk) noexcept;
+//
+// /**
+//  * @tparam T The type stored in the chunked list
+//  * @tparam ChunkSize The size of each chunk within the chunked list
+//  * @tparam Allocator The allocator used for the allocation and deallocation of data
+//  * @param chunk A const reference to the chunk object
+//  * @return A const iterator referencing the first element of the chunk
+//  */
+// template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+// typename chunked_list::ChunkedList<T, ChunkSize>::const_iterator
+// begin(const typename chunked_list::ChunkedList<T, ChunkSize>::Chunk &chunk) noexcept;
+//
+// /**
+//  * @tparam T The type stored in the chunked list
+//  * @tparam ChunkSize The size of each chunk within the chunked list
+//  * @tparam Allocator The allocator used for the allocation and deallocation of data
+//  * @param chunk A reference to the chunk object
+//  * @return An iterator referencing the end element of the chunk
+//  */
+// template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+// typename chunked_list::ChunkedList<T, ChunkSize>::iterator
+// end(typename chunked_list::ChunkedList<T, ChunkSize>::Chunk &chunk) noexcept;
+//
+// /**
+//  * @tparam ChunkedListType The type stored in the chunked list
+//  * @tparam ChunkSize The size of each chunk within the chunked list
+//  * @tparam Allocator The allocator used for the allocation and deallocation of data
+//  * @param chunkedList
+//  * @param chunk A const reference to the chunk object
+//  * @return A const iterator referencing the end element of the chunk
+//  */
+// template<chunked_list::utility::chunked_list ChunkedListType,
+//          chunked_list::utility::iterator_or_chunk_iterator_const<ChunkedListType> IteratorType = typename
+//          ChunkedListType::iterator>
+// IteratorType cend(const ChunkedListType &chunkedList) noexcept;
 
-/**
- * @brief Returns an Iterator to the first element in the given chunked list
- * @tparam T The type stored in the chunked list
- * @tparam ChunkSize The size of each chunk within the ch
- * @tparam Allocator The allocator used for the allocation and deallocation of data
- * @param chunkedList A reference to the container object
- * @returns An Iterator referencing the first element in the container
- */
-template<typename T, size_t ChunkSize, typename Allocator>
-typename chunked_list::ChunkedList<T, ChunkSize>::Iterator
-begin(chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
-
-/**
- * @brief Returns a const iterator to the first element of the given chunked list
- * @tparam T The type stored in the chunked list
- * @tparam ChunkSize The size of each chunk within the chunked list
- * @tparam Allocator The allocator used for the allocation and deallocation of data
- * @param chunkedList A const reference to the chunked list object
- * @returns A const iterator referencing the first element of the chunked list
- */
-template<typename T, size_t ChunkSize, typename Allocator>
-typename chunked_list::ChunkedList<T, ChunkSize>::ConstIterator
-begin(const chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
-
-/**
- * @brief Returns a const iterator to the end element of the given chunked list
- * @tparam T The type stored in the chunked list
- * @tparam ChunkSize The size of each chunk within the container
- * @tparam Allocator The allocator used for the allocation and deallocation of data
- * @param chunkedList A reference to the chunked list object
- * @returns A const iterator referencing the end element of the chunked list
- */
-template<typename T, size_t ChunkSize, typename Allocator>
-typename chunked_list::ChunkedList<T, ChunkSize>::Iterator
-end(chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
-
-/**
- * @brief Returns an iterator referencing the end element of the given chunked list
- * @tparam T The type stored in the container
- * @tparam ChunkSize The size of each chunk within the chunked list
- * @tparam Allocator The allocator used for the allocation and deallocation of data
- * @param chunkedList A const reference to the chunked list object
- * @returns An iterator referencing the end element of the chunked list
- */
-template<typename T, size_t ChunkSize, typename Allocator>
-typename chunked_list::ChunkedList<T, ChunkSize>::ConstIterator
-end(const chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
-
-/**
- * @brief Returns an iterator to the first element of the given chunk
- * @tparam T The type stored in the chunked list
- * @tparam ChunkSize The size of each chunk within the chunked list
- * @tparam Allocator The allocator used for the allocation and deallocation of data
- * @param chunk A reference to the chunk object
- * @return An iterator referencing the first element of the chunk
- */
-template<typename T, size_t ChunkSize, typename Allocator>
-typename chunked_list::ChunkedList<T, ChunkSize>::Iterator
-begin(typename chunked_list::ChunkedList<T, ChunkSize>::Chunk &chunk) noexcept;
-
-/**
- * @brief Returns a const iterator to the first element of the given chunk
- * @tparam T The type stored in the chunked list
- * @tparam ChunkSize The size of each chunk within the chunked list
- * @tparam Allocator The allocator used for the allocation and deallocation of data
- * @param chunk A const reference to the chunk object
- * @return A const iterator referencing the first element of the chunk
- */
-template<typename T, size_t ChunkSize, typename Allocator>
-typename chunked_list::ChunkedList<T, ChunkSize>::ConstIterator
-begin(const typename chunked_list::ChunkedList<T, ChunkSize>::Chunk &chunk) noexcept;
-
-/**
- * @brief Returns an iterator to the end element of the given chunk
- * @tparam T The type stored in the chunked list
- * @tparam ChunkSize The size of each chunk within the chunked list
- * @tparam Allocator The allocator used for the allocation and deallocation of data
- * @param chunk A reference to the chunk object
- * @return An iterator referencing the end element of the chunk
- */
-template<typename T, size_t ChunkSize, typename Allocator>
-typename chunked_list::ChunkedList<T, ChunkSize>::Iterator
-end(typename chunked_list::ChunkedList<T, ChunkSize>::Chunk &chunk) noexcept;
-
-/**
- * @brief Returns a const iterator to the first element of the given chunk
- * @tparam T The type stored in the chunked list
- * @tparam ChunkSize The size of each chunk within the chunked list
- * @tparam Allocator The allocator used for the allocation and deallocation of data
- * @param chunk A const reference to the chunk object
- * @return A const iterator referencing the end element of the chunk
- */
-template<typename T, size_t ChunkSize, typename Allocator>
-typename chunked_list::ChunkedList<T, ChunkSize>::ConstIterator
-end(const typename chunked_list::ChunkedList<T, ChunkSize>::Chunk &chunk) noexcept;
-
-#undef DEBUG_LOG
-#undef DEBUG_LINE
-#undef DEBUG_EXECUTE
-
-#include "detail/ChunkedList.tpp"
 #include "detail/Chunk.tpp"
-#include "detail/Iterator.tpp"
-#include "detail/Slice.tpp"
+#include "detail/ChunkedList.tpp"
+#include "detail/ChunkedListSlice.hpp"
+#include "detail/ChunkedListSlice.tpp"
+#include "detail/generic_iterator.tpp"
 #include "detail/utility.tpp"
