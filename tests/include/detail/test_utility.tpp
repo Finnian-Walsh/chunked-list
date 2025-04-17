@@ -47,49 +47,64 @@ namespace test_utility {
   }
 
   template<typename T, size_t N>
-  T *AlignedArray<T, N>::operator+(const size_t index) {
-    return operator T *() + index;
-  }
-
-  template<typename T, size_t N>
-  T *AlignedArray<T, N>::operator-(const size_t index) {
-    return operator T *() - index;
-  }
-
-  template<typename T, size_t N>
-  T &AlignedArray<T, N>::operator*() {
-    return *operator T *();
-  }
-
-  template<typename T, size_t N>
-  T *AlignedArray<T, N>::operator->() {
-    return operator T *();
-  }
-
-  template<typename T, size_t N>
-  T &AlignedArray<T, N>::operator[](const size_t index) {
-    return *operator+(index);
-  }
-
-  template<typename T, size_t N>
-  AlignedArray<T, N>::operator T *() {
+  T *AlignedArray<T, N>::load() {
     return std::launder(reinterpret_cast<T *>(array));
   }
 
   template<typename T, size_t N>
-  T *AlignedArray<T, N>::data() {
-    return operator T *();
+  const T *AlignedArray<T, N>::load() const {
+    return std::launder(reinterpret_cast<const T *>(array));
+  }
+
+  template<typename T, size_t N>
+  T *AlignedArray<T, N>::operator+(const size_t n) {
+    return load() + n;
+  }
+
+  template<typename T, size_t N>
+  const T *AlignedArray<T, N>::operator+(const size_t n) const {
+    return load() + n;
+  }
+
+  template<typename T, size_t N>
+  T *AlignedArray<T, N>::operator-(const size_t n) {
+    return load() - n;
+  }
+
+  template<typename T, size_t N>
+  const T *AlignedArray<T, N>::operator-(const size_t n) const {
+    return load() - n;
+  }
+
+  template<typename T, size_t N>
+  T &AlignedArray<T, N>::operator[](const size_t index) {
+    return load()[index];
+  }
+
+  template<typename T, size_t N>
+  const T &AlignedArray<T, N>::operator[](const size_t index) const {
+    return load()[index];
+  }
+
+  template<typename T, size_t N>
+  T &AlignedArray<T, N>::operator*() {
+    return *load();
+  }
+
+  template<typename T, size_t N>
+  const T &AlignedArray<T, N>::operator*() const {
+    return *load();
   }
 
   template<typename T, size_t N>
   template<typename... Args>
   void AlignedArray<T, N>::construct(const size_t index, Args &&...args) {
-    new (operator+(index)) T(std::forward<Args>(args)...);
+    new (load() + index) T(std::forward<Args>(args)...);
   }
 
   template<typename T, size_t N>
   void AlignedArray<T, N>::destroy(const size_t index) {
-    operator[](index).~T();
+    load()[index].~T();
   }
 
   template<typename... Args>
@@ -269,7 +284,7 @@ namespace test_utility {
   }
 
   class Foo {
-    static constexpr const char *s = "hi";
+      static constexpr const char *s = "hi";
   };
 
   template<template<size_t> typename SubTest>

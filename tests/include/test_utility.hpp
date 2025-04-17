@@ -57,19 +57,25 @@ namespace test_utility {
     public:
       AlignedArray() = default;
 
-      T *operator+(size_t index);
+      T *load();
 
-      T *operator-(size_t index);
+      const T *load() const;
 
-      T &operator*();
+      T *operator+(size_t n);
 
-      T *operator->();
+      const T *operator+(size_t n) const;
+
+      T *operator-(size_t n);
+
+      const T *operator-(size_t n) const;
 
       T &operator[](size_t index);
 
-      operator T *();
+      const T &operator[](size_t index) const;
 
-      T *data();
+      T &operator*();
+
+      const T &operator*() const;
 
       template<typename... Args>
       void construct(size_t index, Args &&...args);

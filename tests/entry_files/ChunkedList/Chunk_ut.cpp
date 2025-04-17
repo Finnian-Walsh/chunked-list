@@ -132,7 +132,7 @@ SUBTEST(Arithmetic) {
 
   // Construction
 
-  array.construct(CHUNK_COUNT, sentinel - 1, array);
+  array.construct(CHUNK_COUNT, sentinel - 1, array.load());
 
   array.construct(0, sentinel, array + 1);
 
@@ -242,7 +242,7 @@ SUBTEST(Iteration) {
     chunk.construct(0, vec.data(), ChunkSize, &dummy, &dummy);
   }
 
-  ASSERT_OBJ(chunk.data(), obj->begin() + ChunkSize == obj->end(), obj->end() - ChunkSize == obj->begin())
+  ASSERT_OBJ(chunk.load(), obj->begin() + ChunkSize == obj->end(), obj->end() - ChunkSize == obj->begin())
 
   size_t count = ChunkSize;
 
@@ -258,7 +258,7 @@ SUBTEST(Iteration) {
     --n;
   });
 
-  const Chunk &cref = *chunk;
+  const Chunk &cref = chunk.load();
 
   std::for_each(cref.crbegin(), cref.crend(), [&count](const Integral &n) {
     --count;
