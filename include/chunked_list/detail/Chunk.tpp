@@ -12,14 +12,14 @@ namespace chunked_list {
                                                      Chunk *nextChunk) :
       nextIndex{size}, prevChunk{prevChunk}, nextChunk{nextChunk} {
     for (size_t index = 0; index < size; ++index) {
-      new (array + index) T{pointer[index]};
+      ValueAllocatorTraits::construct(value_allocator, data() + index, pointer[index]);
     }
   }
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>
   ChunkedList<T, ChunkSize, Allocator>::Chunk::Chunk(T &&value, Chunk *prevChunk, Chunk *nextChunk) :
       nextIndex{1}, prevChunk{prevChunk}, nextChunk{nextChunk} {
-    new (array) T{std::forward<T>(value)};
+    ValueAllocatorTraits::construct(value_allocator, data(), std::forward<T>(value));
   }
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>
@@ -29,17 +29,17 @@ namespace chunked_list {
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>
   T *ChunkedList<T, ChunkSize, Allocator>::Chunk::data() {
-    return reinterpret_cast<T *>(array);
+    return std::launder(reinterpret_cast<T *>(array));
   }
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>
   const T *ChunkedList<T, ChunkSize, Allocator>::Chunk::data() const {
-    return reinterpret_cast<T *>(array);
+    return std::launder(reinterpret_cast<T *>(array));
   }
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>
   void ChunkedList<T, ChunkSize, Allocator>::Chunk::push_back(T &&value) {
-    new (array + nextIndex) T{std::forward<T>(value)};
+    ValueAllocatorTraits::construct(value_allocator, data() + nextIndex, std::forward<T>(value));
     ++nextIndex;
   }
 
@@ -47,14 +47,14 @@ namespace chunked_list {
   template<typename... Args>
     requires utility::can_construct<T, Args...>
   void ChunkedList<T, ChunkSize, Allocator>::Chunk::emplace_back(Args &&...args) {
-    new (array + nextIndex) T{std::forward<Args>(args)...};
+    ValueAllocatorTraits::construct(value_allocator, data() + nextIndex, std::forward<Args>(args)...);
     ++nextIndex;
   }
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>
   void ChunkedList<T, ChunkSize, Allocator>::Chunk::pop_back() {
     --nextIndex;
-    operator[](nextIndex).~T();
+    data()[nextIndex].~T();
   }
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>
@@ -99,12 +99,12 @@ namespace chunked_list {
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>
   T &ChunkedList<T, ChunkSize, Allocator>::Chunk::operator[](const size_t index) {
-    return *reinterpret_cast<T *>(array + index);
+    return data()[index];
   }
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>
   const T &ChunkedList<T, ChunkSize, Allocator>::Chunk::operator[](const size_t index) const {
-    return *std::launder(reinterpret_cast<const T *>(array + index));
+    return data()[index];
   }
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>
@@ -112,7 +112,8 @@ namespace chunked_list {
     if (index >= nextIndex) {
       throw BoundaryError{utility::concatenate("Index ", index, " is out of bounds!")};
     }
-    return operator[](index);
+
+    return data()[index];
   }
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>
@@ -120,7 +121,7 @@ namespace chunked_list {
     if (index >= nextIndex) {
       throw BoundaryError{utility::concatenate("Index ", index, " is out of bounds!")};
     }
-    return operator[](index);
+    return data()[index];
   }
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>
@@ -130,7 +131,7 @@ namespace chunked_list {
     }
 
     for (size_t i = 0; i < nextIndex; ++i) {
-      if (operator[](i) != other[i]) {
+      if (data()[i] != other[i]) {
         return false;
       }
     }
