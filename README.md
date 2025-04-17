@@ -1,17 +1,17 @@
 ## Table of Contents
 
 1. [Concept](#concept)
+    - [Template parameters](#template-parameters)
+    - [Deallocation](#deallocation)
 2. [Chunks](#chunks)
-3. [Deallocation](#deallocation)
-4. [Methods](#methods)
+3. [Methods](#methods)
     - [Iteration](#iteration)
     - [Sorting](#sorting)
     - [Private Member Accessing](#private-member-accessing)
-5. [Installation](#installation)
-6. [Examples](#examples)
-    - [Basic Usage](#basic-usage)
+4. [Installation](#installation)
+5. [Examples](#examples)
+    - [Basic usage](#basic-usage)
     - [String Concatenation](#string-concatenation)
-7. [Snake Case Variant](#snake-case-variant)
 
 # Chunked List
 
@@ -20,16 +20,21 @@
 The **ChunkedList** is a simple and efficient C++ list data structure, which uses **Chunks** to store data.
 
 ```cpp
-template<typename T, size_t ChunkSize = 32>
+template<typename T, size_t ChunkSize = 32, template<typename> typename Allocator = std::allocator>
 class ChunkedList;
 ```
 
 This data structure is essentially a linked list, where each node is a **Chunk**.
 
-### Template Parameters
+### Template parameters
 
 - `T` the type of data which will be stored in the **ChunkedList**
 - `ChunkSize` the size of each **Chunk**
+- `Allocator` the template allocator class used for the allocation of chunks.
+
+### Deallocation
+
+When a **ChunkedList** instance is deallocated, every **Chunk** gets deallocated in reverse order of allocation.
 
 ## Chunks
 
@@ -41,22 +46,6 @@ respectively.
 Therefore, calling the pop method on a **ChunkedList** doesn't deallocate anything unless the next index of the back
 **Chunk** is equal to 0, causing the entire **Chunk** to be deallocated. Using popped values which haven't been
 deallocated is recommended against.
-
-## Deallocation
-
-When a **ChunkedList** instance is deallocated, every **Chunk** gets deallocated, from the `back` to the `front`.
-
-```cpp
-template<typename T, size_t ChunkSize, typename Allocator>
-ChunkedList<T, ChunkSize, Allocator>::~ChunkedList() {
-  do {
-    Chunk *prev = back->prevChunk;
-    ChunkAllocatorTraits::destroy(chunkAllocator, back);
-    ChunkAllocatorTraits::deallocate(chunkAllocator, back, 1);
-    back = prev;
-  } while (back);
-}
-```
 
 ## Methods
 
@@ -70,14 +59,6 @@ until the correct value is found.
 for (T value : chunkedList) {
   ...
 }
-```
-
-```cpp
-template<typename T, size_t ChunkSize, typename Allocator>
-ChunkedList<T, ChunkSize, Allocator>::Iterator begin(ChunkedList<T, ChunkSize, Allocator> &chunkedList);
-
-template<typename T, size_t ChunkSize, typename Allocator>
-ChunkedList<T, ChunkSize, Allocator>::Iterator end(ChunkedList<T, ChunkSize, Allocator> &chunkedList);
 ```
 
 ### Sorting
@@ -94,12 +75,17 @@ By default, the sort function uses `std::less<T>` to compare types and `QuickSor
 
 ### Private member accessing
 
-The **ChunkedListAccessor** template class provides safe access to the non-public members:
+The **ChunkedListAccessor** template class provides access to the non-public members:
 
-- front (first chunk)
-- back (last chunk)
-- chunkCount (number of chunks)
-- pushChunk (insert a chunk to the back of the list)
+- chunk_count (number of chunks)
+- ValueAllocator (the T specialisation of the Allocator template template type parameter)
+- ValueAllocatorTraits (the std wrapper for the ValueAllocator class)
+- ChunkAllocator (the Chunk specialisation of the Allocator template template type parameter)
+- ChunkAllocatorTraits (the std wrapper for the ChunkAllocator class)
+- chunk_allocator (the ChunkAllocator object used for the allocation and deallocation of Chunks)
+- sentinel (chunk before the front and after the back)
+- generic_chunk_iterator (a template class used for defining chunk_iterator and const_chunk_iterator)
+- generic_iterator (a template class used for defining iterator and const_iterator)
 
 ```cpp
 template<typename T, size_t ChunkSize, typename Allocator>
@@ -121,9 +107,9 @@ size_t chunkCount = accessor.getChunkCount();
 Furthermore, the **Accessor** type aliases the **ChunkedListAccessor** for any given **ChunkedList**
 
 ```cpp
-template<typename ChunkedListT>
-using Accessor = ChunkedListAccessor<typename ChunkedListT::value_type, ChunkedListT::chunk_size,
-typename ChunkedListT::allocator_type>;
+template<typename ChunkedListType>
+using Accessor = ChunkedListAccessor<typename ChunkedListType::value_type, ChunkedListType::chunk_size,
+typename ChunkedListType::allocator_type>;
 ```
 
 ## Installation
@@ -142,12 +128,12 @@ Then, add the `include` directory to your include directories.
 
 ## Examples
 
-### Basic Usage
+### Basic usage
 
 ```cpp
 #include <iostream>
 
-#include "chunked-list/ChunkedList.hpp"
+#include "chunked_list/ChunkedList.hpp"
 
 using chunked_list::ChunkedList;
 
@@ -176,7 +162,7 @@ Output:
 ```cpp
 #include <iostream>
 
-#include "chunked-list/ChunkedList.hpp"
+#include "chunked_list/ChunkedList.hpp"
 
 using chunked_list::ChunkedList;
 
@@ -191,45 +177,4 @@ Output:
 
 ```
 Hello world!
-```
-
-## Snake Case Variant
-
-For projects where `snake_case` naming conventions are used, one can include:
-
-```cpp
-#include "chunked-list/ChunkedListSnake.hpp"
-```
-
-This implements the **Chunked_List** class, which has identical functionality to the **ChunkedList**, but uses snake
-case for its members.
-
-### Example
-
-```cpp
-#include <random>
-
-#include "chunked-list/ChunkedListSnake.hpp"
-
-using chunked_list::Chunked_List;
-
-int main() {
-  Chunked_List<int, 32> obj{};
-  
-  std::mt19937 gen{std::random_device{}};
-  std::uniform_int_distribution<int> dist{1, 100};
-  
-  for (int i = 0; i < 1000; ++i) {
-    int num = dist(gen);
-    obj.push(num);
-  }
-
-  std::cout << "Unsorted: " << obj << std::endl;
-  
-  obj.sort<std::less<int>, HeapSort>();
-  
-  std::cout << "Sorted: " << obj << std::endl;
-  
-  return 0;
-}
 ```
