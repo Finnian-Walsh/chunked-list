@@ -12,27 +12,27 @@ PERFORMANCE_BENCHMARK("ChunkedList") {
 
   using List = ChunkedList<size_t, 2, CustomAllocator>;
 
-  AlignedArray<List> list;
+  AlignedArray<List> listContainer;
 
-  callPerformanceTest([&list]() mutable -> void { list.construct(0); }, "Constructing a list");
+  callPerformanceTest([&listContainer]() mutable -> void { listContainer.construct(0); }, "Constructing a list");
 
   constexpr int PUSHES = 4;
 
   callPerformanceTest(
-    [&list]{
+    [&listContainer]{
       for (int i = 0; i < PUSHES; ++i) {
-        list.load()->push_back(i);
+        listContainer.load()->push_back(i);
       }
     },
     concatenate("Pushing ", PUSHES, " ints").c_str());
 
   callPerformanceTest(
-    [&list] {
+    [&listContainer] {
       for (int i = 0; i < PUSHES; ++i) {
-        list.load()->pop_back();
+        listContainer.load()->pop_back();
       }
     },
     concatenate("Popping ", PUSHES, " ints").c_str());
 
-  callPerformanceTest([&list] { list.destroy(0); }, "Destroying");
+  callPerformanceTest([&listContainer] { listContainer.destroy(0); }, "Destroying");
 }
