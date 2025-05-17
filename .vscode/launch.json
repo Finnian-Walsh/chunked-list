@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+      {
+          "name": "Test Executable",
+          "type": "node",
+          "request": "launch",
+          "program": "${workspaceFolder}/Test/build/vscode",
+          "args": [],
+          "cwd": "${workspaceFolder}",
+          "preLaunchTask": "Pre-launch Tasks"
+      }
+  ]
+}

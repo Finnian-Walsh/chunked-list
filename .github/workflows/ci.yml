@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - 'master'
+  pull_request:
+    branches:
+      - 'master'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake g++
+
+      - name: Configure CMake
+        run: cmake -S tests -B build
+
+      - name: Build project
+        run: cmake --build build
+
+      - name: Run tests
+        run: |
+          ./build/Chunk-UT
+          ./build/ChunkedList-IT

@@ -1,0 +1,54 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Generate Build files",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-S Test",
+                "-B Test/build/vscode"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        },
+        {
+          "label": "CMake Build",
+          "type": "shell",
+          "command": "cmake",
+          "args": [
+              "--build",
+              "Test/build"
+          ],
+          "group": {
+              "kind": "build",
+              "isDefault": true
+          },
+          "problemMatcher": []
+      },
+      {
+          "label": "Run Build",
+          "type": "shell",
+          "command": "./Test/build/vscode/build",
+          "args": [],
+          "group": {
+              "kind": "test",
+              "isDefault": true
+          },
+          "problemMatcher": []
+      },
+      {
+        "label": "Pre-launch Tasks",
+        "dependsOn": [
+            "Generate Build files",
+            "CMake Build",
+            "Run Build"
+        ],
+        "dependsOrder": "sequence",
+        "problemMatcher": []
+      }
+    ]
+  }
