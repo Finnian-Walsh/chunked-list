@@ -21,6 +21,8 @@ inline std::string &getBoundary() {
   return boundary;
 }
 
+#define DISPLAY_BOUNDARY std::cout << getBoundary() << '\n';
+
 #define ASSERT(expr)                                                                                                   \
   if (!(expr)) {                                                                                                       \
     using namespace test_utility;                                                                                      \
@@ -33,7 +35,17 @@ inline std::string &getBoundary() {
     test_utility::variadicAssert(__LINE__, #__VA_ARGS__, __VA_ARGS__);                                                 \
   } while (false);
 
-#define DISPLAY_BOUNDARY std::cout << getBoundary() << '\n';
+#define ASSERT_INCREMENT(firstIt, lastIt, ...)                                                                         \
+  std::for_each(firstIt, lastIt, [&counter](__VA_ARGS__ Integral &n) {                                                 \
+    ASSERT(n == counter)                                                                                               \
+    ++counter;                                                                                                         \
+  });
+
+#define DECREMENT_ASSERT(firstIt, lastIt, ...)                                                                         \
+  std::for_each(firstIt, lastIt, [&counter](__VA_ARGS__ Integral &n) {                                                 \
+    --counter;                                                                                                         \
+    ASSERT(n == counter)                                                                                               \
+  });
 
 #define TIME_PROCESS(process, ...)                                                                                     \
   do {                                                                                                                 \
@@ -73,6 +85,10 @@ inline std::string &getBoundary() {
 
 #define TEST_DEFS
 
+#define ALIGNED_ARRAY_DEF                                                                                              \
+  template<typename T, size_t N = 1>                                                                                   \
+  using AlignedArray = test_utility::AlignedArray<T, N>;
+
 #define CHUNKED_LIST_DEFS                                                                                              \
   using PubList = chunked_list::Accessor<List>;                                                                        \
   using AlignedList = test_utility::AlignedArray<List>;                                                                \
@@ -81,6 +97,16 @@ inline std::string &getBoundary() {
   PubList &access(List &list) const { return *reinterpret_cast<PubList *>(&list); }                                    \
                                                                                                                        \
   const PubList &access(const List &list) const { return *reinterpret_cast<PubList *>(&list); }
+
+#define CHUNKED_LIST_ITERATOR_DEFS                                                                                     \
+  using _iterator = typename List::iterator;                                                                           \
+  using _const_iterator = typename List::const_iterator;                                                               \
+  using _reverse_iterator = typename List::reverse_iterator;                                                           \
+  using _const_reverse_iterator = typename List::const_reverse_iterator;                                               \
+  using _chunk_iterator = typename List::chunk_iterator;                                                               \
+  using _const_chunk_iterator = typename List::const_chunk_iterator;                                                   \
+  using _reverse_chunk_iterator = typename List::reverse_chunk_iterator;                                               \
+  using _const_reverse_chunk_iterator = typename List::const_reverse_chunk_iterator;
 
 #define CHUNKED_LIST_SLICE_DEFS                                                                                        \
   using MutableSlice = typename List::mutable_slice;                                                                   \
