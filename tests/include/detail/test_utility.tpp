@@ -241,13 +241,16 @@ namespace test_utility {
   }
 
   template<typename A, typename B>
-  bool equalContainersIdx(const A &a, const B &b) {
+  bool equalContainersIdx(A &a, B &b) {
+    const A &constA = a;
+    const B &constB = b;
+
     for (size_t i = 0; i < a.size(); ++i) {
-      if (const_cast<A &>(a)[i] != const_cast<B &>(b)[i]) {
+      if (constA[i] != constB[i]) {
         return false;
       }
 
-      if (const_cast<A &>(a).at(i) != const_cast<B &>(b).at(i)) {
+      if (constA.at(i) != constB.at(i)) {
         return false;
       }
 
@@ -283,17 +286,24 @@ namespace test_utility {
     outputDuration(duration);
   }
 
-  class Foo {
-      static constexpr const char *s = "hi";
-  };
-
   template<template<size_t> typename SubTest>
   void callSubTest() {
     ++testNumber;
-    const char *name = SubTest<1>::name;
-    std::cout << " (Test " << testNumber << ")\t" << name << '\t' << std::flush;
+    const char *className = SubTest<1>::name;
+    const size_t nameLength = strlen(className);
+
+    std::string testName(nameLength, ' ');
+
+    for (size_t i = 0; i < nameLength; ++i) {
+      const char c = className[i];
+      if (c == '_')
+        continue;
+      testName[i] = c;
+    }
+
+    std::cout << " (Test " << testNumber << ")\t" << testName << '\t' << std::flush;
     try {
-      timeFunction(chainCall<SubTest>, "\r (Test ", testNumber, ") ", name, ": ");
+      timeFunction(chainCall<SubTest>, "\r (Test ", testNumber, ") ", testName, ": ");
     } catch (...) {
       std::cout << std::endl;
       throw;
@@ -306,7 +316,7 @@ namespace test_utility {
   template<typename F>
   void callPerformanceTest(F function, const char *name) {
     ++testNumber;
-    std::cout << " (Test " << testNumber << ")\t" << name;
+    std::cout << " (Test " << testNumber << ") " << name;
     std::cout.flush();
     timeFunction(function, ": ");
     std::cout << '\n' << std::endl;
