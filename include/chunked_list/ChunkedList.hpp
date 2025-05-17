@@ -92,6 +92,9 @@ namespace chunked_list {
            */
           static constexpr size_t chunk_size = ChunkSize;
 
+          template<typename U>
+          using allocator_type = Allocator<U>;
+
           T *data();
 
           const T *data() const;
@@ -134,17 +137,25 @@ namespace chunked_list {
 
           iterator begin();
 
+          const_iterator begin() const;
+
           const_iterator cbegin() const;
 
           reverse_iterator rbegin();
+
+          const_reverse_iterator rbegin() const;
 
           const_reverse_iterator crbegin() const;
 
           iterator end();
 
+          const_iterator end() const;
+
           const_iterator cend() const;
 
           reverse_iterator rend();
+
+          const_reverse_iterator rend() const;
 
           const_reverse_iterator crend() const;
       };
@@ -785,96 +796,137 @@ namespace chunked_list {
       auto concat(DelimiterType delimiter = ", ") -> utility::DeduceStreamStringType<OutputStream>;
   };
 } // namespace chunked_list
-//
-// /**
-//  * @tparam T The type stored in the chunked list
-//  * @tparam ChunkSize The size of each chunk within the ch
-//  * @tparam Allocator The allocator used for the allocation and deallocation of data
-//  * @param chunkedList A reference to the container object
-//  * @returns An iterator referencing the first element in the container
-//  */
-// template<typename T, size_t ChunkSize, template<typename> typename Allocator>
-// typename chunked_list::ChunkedList<T, ChunkSize>::iterator
-// begin(chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
-//
-// /**
-//  * @tparam T The type stored in the chunked list
-//  * @tparam ChunkSize The size of each chunk within the chunked list
-//  * @tparam Allocator The allocator used for the allocation and deallocation of data
-//  * @param chunkedList A const reference to the chunked list object
-//  * @returns A const iterator referencing the first element of the chunked list
-//  */
-// template<typename T, size_t ChunkSize, template<typename> typename Allocator>
-// typename chunked_list::ChunkedList<T, ChunkSize>::const_iterator
-// begin(const chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
-//
-// /**
-//  * @tparam T The type stored in the chunked list
-//  * @tparam ChunkSize The size of each chunk within the container
-//  * @tparam Allocator The allocator used for the allocation and deallocation of data
-//  * @param chunkedList A reference to the chunked list object
-//  * @returns A const iterator referencing the end element of the chunked list
-//  */
-// template<typename T, size_t ChunkSize, template<typename> typename Allocator>
-// typename chunked_list::ChunkedList<T, ChunkSize>::iterator
-// end(chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
-//
-// /**
-//  * @tparam T The type stored in the container
-//  * @tparam ChunkSize The size of each chunk within the chunked list
-//  * @tparam Allocator The allocator used for the allocation and deallocation of data
-//  * @param chunkedList A const reference to the chunked list object
-//  * @returns An iterator referencing the end element of the chunked list
-//  */
-// template<typename T, size_t ChunkSize, template<typename> typename Allocator>
-// typename chunked_list::ChunkedList<T, ChunkSize>::const_iterator
-// end(const chunked_list::ChunkedList<T, ChunkSize> &chunkedList) noexcept;
-//
-// /**
-//  * @tparam T The type stored in the chunked list
-//  * @tparam ChunkSize The size of each chunk within the chunked list
-//  * @tparam Allocator The allocator used for the allocation and deallocation of data
-//  * @param chunk A reference to the chunk object
-//  * @return An iterator referencing the first element of the chunk
-//  */
-// template<typename T, size_t ChunkSize, template<typename> typename Allocator>
-// typename chunked_list::ChunkedList<T, ChunkSize>::iterator
-// begin(typename chunked_list::ChunkedList<T, ChunkSize>::Chunk &chunk) noexcept;
-//
-// /**
-//  * @tparam T The type stored in the chunked list
-//  * @tparam ChunkSize The size of each chunk within the chunked list
-//  * @tparam Allocator The allocator used for the allocation and deallocation of data
-//  * @param chunk A const reference to the chunk object
-//  * @return A const iterator referencing the first element of the chunk
-//  */
-// template<typename T, size_t ChunkSize, template<typename> typename Allocator>
-// typename chunked_list::ChunkedList<T, ChunkSize>::const_iterator
-// begin(const typename chunked_list::ChunkedList<T, ChunkSize>::Chunk &chunk) noexcept;
-//
-// /**
-//  * @tparam T The type stored in the chunked list
-//  * @tparam ChunkSize The size of each chunk within the chunked list
-//  * @tparam Allocator The allocator used for the allocation and deallocation of data
-//  * @param chunk A reference to the chunk object
-//  * @return An iterator referencing the end element of the chunk
-//  */
-// template<typename T, size_t ChunkSize, template<typename> typename Allocator>
-// typename chunked_list::ChunkedList<T, ChunkSize>::iterator
-// end(typename chunked_list::ChunkedList<T, ChunkSize>::Chunk &chunk) noexcept;
-//
-// /**
-//  * @tparam ChunkedListType The type stored in the chunked list
-//  * @tparam ChunkSize The size of each chunk within the chunked list
-//  * @tparam Allocator The allocator used for the allocation and deallocation of data
-//  * @param chunkedList
-//  * @param chunk A const reference to the chunk object
-//  * @return A const iterator referencing the end element of the chunk
-//  */
-// template<chunked_list::utility::chunked_list ChunkedListType,
-//          chunked_list::utility::iterator_or_chunk_iterator_const<ChunkedListType> IteratorType = typename
-//          ChunkedListType::iterator>
-// IteratorType cend(const ChunkedListType &chunkedList) noexcept;
+
+/**
+ * @brief Standard global begin function for chunked list
+ * @tparam ChunkedListType The type of chunked list
+ * @param chunkedList A const reference to the chunked list object
+ * @return An iterator referencing the first element / chunk of the chunked list
+ */
+template<chunked_list::utility::chunked_list ChunkedListType,
+         typename IteratorType = typename ChunkedListType::iterator>
+  requires chunked_list::utility::iterator_or_chunk_iterator<ChunkedListType, IteratorType>
+IteratorType begin(ChunkedListType &chunkedList) noexcept;
+
+/**
+ * @brief Const begin function for chunked list
+ * @tparam ChunkedListType The type of chunked list
+ * @param chunkedList A const reference to the chunked list object
+ * @return A const iterator referencing the first element / chunk of the chunked list
+ */
+template<chunked_list::utility::chunked_list ChunkedListType,
+         typename ConstIteratorType = typename ChunkedListType::const_iterator>
+  requires chunked_list::utility::iterator_or_chunk_iterator_const<ChunkedListType, ConstIteratorType>
+ConstIteratorType begin(const ChunkedListType &chunkedList) noexcept;
+
+/**
+ * @brief Const begin function for chunked list
+ * @tparam ChunkedListType The type of chunked list
+ * @param chunkedList A const reference to the chunked list object
+ * @return A const iterator referencing the first element / chunk of the chunked list
+ */
+template<chunked_list::utility::chunked_list ChunkedListType,
+         typename ConstIteratorType = typename ChunkedListType::const_iterator>
+  requires chunked_list::utility::iterator_or_chunk_iterator_const<ChunkedListType, ConstIteratorType>
+ConstIteratorType cbegin(const ChunkedListType &chunkedList) noexcept;
+
+/**
+ * @brief Reverse begin function for chunked list
+ * @tparam ChunkedListType The type of chunked list
+ * @param chunkedList A reference to the chunked list object
+ * @return A reverse iterator referencing the last element / chunk of the chunked list
+ */
+template<chunked_list::utility::chunked_list ChunkedListType,
+         typename ReverseIteratorType = typename ChunkedListType::reverse_iterator>
+  requires chunked_list::utility::iterator_or_chunk_iterator_reverse<ChunkedListType, ReverseIteratorType>
+ReverseIteratorType rbegin(ChunkedListType &chunkedList) noexcept;
+
+/**
+ * @brief Const reverse begin function for chunked list
+ * @tparam ChunkedListType The type of chunked list
+ * @param chunkedList A const reference to the chunked list object
+ * @return A reverse const iterator referencing the last element / chunk of the chunked list
+ */
+template<chunked_list::utility::chunked_list ChunkedListType,
+         typename ConstReverseIteratorType = typename ChunkedListType::const_reverse_iterator>
+ConstReverseIteratorType rbegin(const ChunkedListType &chunkedList) noexcept;
+
+/**
+ * @brief Explicit const reverse begin function for chunked list
+ * @tparam ChunkedListType The type of chunked list
+ * @param chunkedList A const reference to the chunked list object
+ * @return A reverse const iterator referencing the last element / chunk of the chunked list
+ */
+template<chunked_list::utility::chunked_list ChunkedListType,
+         typename ConstReverseIteratorType = typename ChunkedListType::const_reverse_iterator>
+  requires chunked_list::utility::iterator_or_chunk_iterator_const_reverse<ChunkedListType, ConstReverseIteratorType>
+ConstReverseIteratorType crbegin(const ChunkedListType &chunkedList) noexcept;
+
+/**
+ * @brief Standard end function for chunked list
+ * @tparam ChunkedListType The type of chunked list
+ * @param chunkedList A reference to the chunked list object
+ * @return An iterator referencing the end element / chunk of the chunked list
+ */
+template<chunked_list::utility::chunked_list ChunkedListType,
+         typename IteratorType = typename ChunkedListType::iterator>
+  requires chunked_list::utility::iterator_or_chunk_iterator<ChunkedListType, IteratorType>
+IteratorType end(ChunkedListType &chunkedList) noexcept;
+
+/**
+ * @brief Const end function for chunked list
+ * @tparam ChunkedListType The type of chunked list
+ * @param chunkedList A const reference to the chunked list object
+ * @return A const iterator referencing the end element / chunk of the chunked list
+ */
+template<chunked_list::utility::chunked_list ChunkedListType,
+         typename ConstIteratorType = typename ChunkedListType::const_iterator>
+  requires chunked_list::utility::iterator_or_chunk_iterator_const<ChunkedListType, ConstIteratorType>
+ConstIteratorType end(const ChunkedListType &chunkedList) noexcept;
+
+/**
+ * @brief Explicit const end function for chunked list
+ * @tparam ChunkedListType The type of chunked list
+ * @param chunkedList A const reference to the chunked list object
+ * @return A const iterator referencing the end element / chunk of the chunked list
+ */
+template<chunked_list::utility::chunked_list ChunkedListType,
+         typename ConstIteratorType = typename ChunkedListType::const_iterator>
+  requires chunked_list::utility::iterator_or_chunk_iterator_const<ChunkedListType, ConstIteratorType>
+ConstIteratorType cend(const ChunkedListType &chunkedList) noexcept;
+
+/**
+ * @brief Reverse end function for chunked list
+ * @tparam ChunkedListType The type of chunked list
+ * @param chunkedList A reference to the chunked list object
+ * @return A reverse iterator referencing the first element / chunk of the chunked list
+ */
+template<chunked_list::utility::chunked_list ChunkedListType,
+         typename ReverseIteratorType = typename ChunkedListType::reverse_iterator>
+  requires chunked_list::utility::iterator_or_chunk_iterator_reverse<ChunkedListType, ReverseIteratorType>
+ReverseIteratorType rend(ChunkedListType &chunkedList) noexcept;
+
+/**
+ * @brief Const reverse end function for chunked list
+ * @tparam ChunkedListType The type of chunked list
+ * @param chunkedList A const reference to the chunked list object
+ * @return A const reverse iterator referencing the first element / chunk of the chunked list
+ */
+template<chunked_list::utility::chunked_list ChunkedListType,
+         typename ConstReverseIteratorType = typename ChunkedListType::const_reverse_iterator>
+  requires chunked_list::utility::iterator_or_chunk_iterator_const_reverse<ChunkedListType, ConstReverseIteratorType>
+ConstReverseIteratorType rend(const ChunkedListType &chunkedList) noexcept;
+
+/**
+ * @brief Explicit const reverse end function for chunked list
+ * @tparam ChunkedListType The type of chunked list
+ * @param chunkedList A const reference to the chunked list object
+ * @return A const reverse iterator referencing the first element / chunk of the chunked list
+ */
+template<chunked_list::utility::chunked_list ChunkedListType,
+         typename ConstReverseIteratorType = typename ChunkedListType::const_reverse_iterator>
+  requires chunked_list::utility::iterator_or_chunk_iterator_const_reverse<ChunkedListType, ConstReverseIteratorType>
+ConstReverseIteratorType crend(const ChunkedListType &chunkedList) noexcept;
 
 #include "detail/Chunk.tpp"
 #include "detail/ChunkedList.tpp"
