@@ -3,14 +3,8 @@
 #include "../../include/Tests.hpp"
 
 #undef TEST_DEFS
-#define TEST_DEFS CHUNK_DEFS
+#define TEST_DEFS ALIGNED_ARRAY_DEF CHUNK_DEFS
 
-/*
- * Chunk(Chunk *prevChunk, Chunk *nextChunk = nullptr);
- * Chunk(const T *pointer, size_t size, Chunk *prevChunk = nullptr, Chunk *nextChunk = nullptr);
- * Chunk(T value, Chunk *prevChunk = nullptr, Chunk *nextChunk = nullptr);
- * Chunk();
- */
 SUBTEST(Initialization) {
   Vector vec;
 
@@ -34,18 +28,17 @@ SUBTEST(Initialization) {
   ASSERT_OBJ((Chunk{Integral{}, prev, next}), obj.prevChunk == prev, obj.nextChunk == next)
 }
 
-/*
- * value_type
- * chunk_size
- */
-SUBTEST(StaticMembers){ASSERT(static_cast<bool>(std::is_same_v<Integral, typename Chunk::value_type>))
-                         ASSERT(ChunkSize == Chunk::chunk_size)}
+SUBTEST(Static_Members) {
+  ASSERT(static_cast<bool>(std::is_same_v<Integral, typename Chunk::value_type>))
+  ASSERT(ChunkSize == Chunk::chunk_size)
 
-/*
- * T *data();
- * const T *data() const;
- */
-SUBTEST(DataAccessing) {
+  struct ArbitraryType {};
+
+  ASSERT(
+    static_cast<bool>(std::is_same_v<typename Chunk::template allocator_type<ArbitraryType>, Allocator<ArbitraryType>>))
+}
+
+SUBTEST(Data_Accessing) {
   Vector vec(ChunkSize);
   std::iota(vec.begin(), vec.end(), 0);
 
@@ -57,7 +50,6 @@ SUBTEST(DataAccessing) {
   }
 }
 
-// void push_back(T value);
 SUBTEST(Pushing) {
   Chunk chunk1;
 
@@ -72,11 +64,6 @@ SUBTEST(Pushing) {
   }
 }
 
-/*
- * template<typename... Args>
- *  requires utility::can_construct<T, Args...>
- * void emplace_back(Args &&...args);
- */
 SUBTEST(Emplacing) {
   Chunk chunk1;
 
@@ -91,7 +78,6 @@ SUBTEST(Emplacing) {
   }
 }
 
-// void pop_back();
 SUBTEST(Popping) {
   Chunk chunk;
 
@@ -104,29 +90,24 @@ SUBTEST(Popping) {
   }
 }
 
-// void clear();
 SUBTEST(Clearing) {
   Vector vec(ChunkSize);
   std::iota(vec.begin(), vec.end(), 0);
 
-  Chunk chunk{vec.data(), ChunkSize};
+  AlignedArray<Chunk> chunkContainer;
 
   for (size_t i = 1; i <= ChunkSize; ++i) {
-    chunk.clear();
-    ChunkAllocatorTraits::destroy(chunk_allocator, &chunk);
-    new (&chunk) Chunk{vec.data(), ChunkSize / i};
+    chunkContainer.construct(0, vec.data(), ChunkSize / i);
+    chunkContainer.load()->clear();
+    chunkContainer.destroy(0);
   }
 }
 
-/*
- * Chunk &operator+(size_t n);
- * Chunk &operator-(size_t n);
- */
 SUBTEST(Arithmetic) {
   constexpr size_t CHUNK_COUNT = 3;
   constexpr size_t ARRAY_SIZE = CHUNK_COUNT + 1;
 
-  test_utility::AlignedArray<Chunk, ARRAY_SIZE> array;
+  AlignedArray<Chunk, ARRAY_SIZE> array;
 
   Chunk *sentinel = array + CHUNK_COUNT;
 
@@ -149,10 +130,6 @@ SUBTEST(Arithmetic) {
   }
 }
 
-/*
- * size_t size() const;
- * bool empty() const;
- */
 SUBTEST(Size) {
   Chunk chunk;
 
@@ -172,12 +149,6 @@ SUBTEST(Size) {
   ASSERT(chunk.empty())
 }
 
-/*
- *T &operator[](size_t index);
- * const T &operator[](size_t index) const;
- * T &at(size_t index);
- * const T &at(size_t index) const;
- */
 SUBTEST(Indexing) {
   Vector vec(ChunkSize);
   std::iota(vec.begin(), vec.end(), 0);
@@ -188,10 +159,6 @@ SUBTEST(Indexing) {
              test_utility::equalContainersIdx(*obj, vec));
 }
 
-/*
- * bool operator==(const Chunk &other) const;
- * bool operator!=(const Chunk &other) const;
- */
 SUBTEST(Comparison) {
   Chunk chunk1, chunk2;
 
@@ -220,18 +187,8 @@ SUBTEST(Comparison) {
   }
 }
 
-/*
- * iterator begin();
- * const_iterator cbegin() const;
- * reverse_iterator rbegin();
- * const_reverse_iterator crbegin() const;
- * iterator end();
- * const_iterator cend() const;
- * reverse_iterator rend();
- * const_reverse_iterator crend() const;
- */
 SUBTEST(Iteration) {
-  test_utility::AlignedArray<Chunk> chunk;
+  AlignedArray<Chunk> chunk;
   Chunk dummy{chunk + 0, chunk + 0};
 
   Chunk &ref = *chunk;
@@ -244,31 +201,21 @@ SUBTEST(Iteration) {
 
   ASSERT_OBJ(chunk.load(), obj->begin() + ChunkSize == obj->end(), obj->end() - ChunkSize == obj->begin())
 
-  size_t count = ChunkSize;
+  size_t counter = ChunkSize;
 
-  std::for_each(ref.rbegin(), ref.rend(), [&count](Integral &n) {
-    --count;
-    ASSERT(n == count);
-    ++n;
-  });
+  DECREMENT_ASSERT(ref.rbegin(), ref.rend());
 
-  std::for_each(ref.begin(), ref.end(), [&count](Integral &n) {
-    ++count;
-    ASSERT(n == count)
-    --n;
-  });
+  ASSERT_INCREMENT(ref.begin(), ref.end());
 
-  const Chunk &cref = chunk.load();
+  const Chunk &cref = *chunk;
 
-  std::for_each(cref.crbegin(), cref.crend(), [&count](const Integral &n) {
-    --count;
-    ASSERT(n == count);
-  });
+  DECREMENT_ASSERT(cref.rbegin(), cref.rend(), const);
 
-  std::for_each(cref.cbegin(), cref.cend(), [&count](const Integral &n) {
-    ASSERT(n == count)
-    ++count;
-  });
+  ASSERT_INCREMENT(cref.begin(), cref.end(), const);
+
+  DECREMENT_ASSERT(cref.crbegin(), cref.crend(), const);
+
+  ASSERT_INCREMENT(cref.cbegin(), cref.cend(), const);
 
   chunk.destroy(0);
 }
