@@ -2,9 +2,7 @@
 #include "../../include/Tests.hpp"
 
 #undef TEST_DEFS
-#define TEST_DEFS CHUNKED_LIST_DEFS CHUNKED_LIST_SLICE_DEFS
-
-#define BASIC_INITIALIZER_LIST IntegralInitializerList{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
+#define TEST_DEFS CHUNKED_LIST_DEFS CHUNKED_LIST_ITERATOR_DEFS CHUNKED_LIST_SLICE_DEFS
 
 SUBTEST(Initialization) {
   List{};
@@ -18,18 +16,16 @@ SUBTEST(Pushing) {
   // const Integral &valueRef = value;
 
   for (size_t i = 0; i < static_cast<size_t>(value); ++i) {
-    list.push_back(std::forward<Integral>(value));
+    list.push_back(value);
   }
 }
 
-SUBTEST(StaticMembers) {
+SUBTEST(Static_Members) {
   ASSERT(static_cast<bool>(std::is_same_v<typename List::value_type, Integral>))
   ASSERT(List::chunk_size == ChunkSize);
 
   struct ArbitraryType {};
 
-  ASSERT(
-    static_cast<bool>(std::is_same_v<typename List::template allocator_type<ArbitraryType>, Allocator<ArbitraryType>>))
   ASSERT(
     static_cast<bool>(std::is_same_v<typename List::template allocator_type<ArbitraryType>, Allocator<ArbitraryType>>))
 }
@@ -46,7 +42,7 @@ SUBTEST(Indexing) {
   }
 }
 
-SUBTEST(Iteration) {
+SUBTEST(Member_Iteration_Methods) {
   List list{BASIC_INITIALIZER_LIST};
   const List &constRef = list;
 
@@ -54,50 +50,41 @@ SUBTEST(Iteration) {
 
   // List::{begin, end, rbegin, rend}
 
-  for (auto it = list.begin(); it != list.end(); ++it) {
-    ASSERT(*it == counter)
-    ++counter;
-  }
+  ASSERT_INCREMENT(list.begin(), list.end());
 
-  for (auto rit = list.rbegin(); rit != list.rend(); ++rit) {
-    --counter;
-    ASSERT(*rit == counter)
-  }
+  DECREMENT_ASSERT(list.rbegin(), list.rend());
 
   // const List::{begin, end, rbegin, rend}
 
-  for (auto it = constRef.begin(); it != constRef.end(); ++it) {
-    ASSERT(*it == counter)
-    ++counter;
-  }
+  ASSERT_INCREMENT(constRef.begin(), constRef.end(), const)
 
-  for (auto it = constRef.rbegin(); it != constRef.rend(); ++it) {
-    --counter;
-    ASSERT(*it == counter)
-  }
+  DECREMENT_ASSERT(constRef.rbegin(), constRef.rend(), const)
 
   // List::{cbegin, cend, crbegin, crend}
 
-  for (auto cit = list.cbegin(); cit != list.cend(); ++cit) {
-    ASSERT(*cit == counter)
-    ++counter;
-  }
+  ASSERT_INCREMENT(list.cbegin(), list.cend(), const)
 
-  for (auto crit = list.crbegin(); crit != list.crend(); ++crit) {
-    --counter;
-    ASSERT(*crit == counter)
-  }
+  DECREMENT_ASSERT(list.crbegin(), list.crend(), const)
 
   // const List::{cbegin, cend, crbegin, crend}
 
-  for (auto cit = constRef.cbegin(); cit != constRef.cend(); ++cit) {
-    ASSERT(*cit == counter)
-    ++counter;
-  }
+  ASSERT_INCREMENT(list.cbegin(), list.cend(), const)
 
-  for (auto crit = constRef.crbegin(); crit != constRef.crend(); ++crit) {
-    --counter;
-    ASSERT(*crit == counter)
+  DECREMENT_ASSERT(constRef.crbegin(), constRef.crend(), const)
+}
+
+SUBTEST(Global_Iteration_Methods) {
+  List list{BASIC_INITIALIZER_LIST};
+  // const List &constRef = list;
+
+  size_t counter = 0;
+
+  ASSERT_INCREMENT(begin(list), end(list))
+
+  DECREMENT_ASSERT(rbegin(list), rend(list))
+
+  for (Integral i{0}; static_cast<size_t>(i) < list.size(); ++i) {
+    ASSERT(list.at(i) == i)
   }
 }
 
