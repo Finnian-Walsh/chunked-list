@@ -151,8 +151,14 @@ namespace chunked_list {
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>
   typename ChunkedList<T, ChunkSize, Allocator>::const_iterator
-  ChunkedList<T, ChunkSize, Allocator>::Chunk::cbegin() const {
+  ChunkedList<T, ChunkSize, Allocator>::Chunk::begin() const {
     return const_iterator{this};
+  }
+
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  typename ChunkedList<T, ChunkSize, Allocator>::const_iterator
+  ChunkedList<T, ChunkSize, Allocator>::Chunk::cbegin() const {
+    return begin();
   }
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>
@@ -163,8 +169,14 @@ namespace chunked_list {
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>
   typename ChunkedList<T, ChunkSize, Allocator>::const_reverse_iterator
-  ChunkedList<T, ChunkSize, Allocator>::Chunk::crbegin() const {
+  ChunkedList<T, ChunkSize, Allocator>::Chunk::rbegin() const {
     return const_reverse_iterator{cend()};
+  }
+
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  typename ChunkedList<T, ChunkSize, Allocator>::const_reverse_iterator
+  ChunkedList<T, ChunkSize, Allocator>::Chunk::crbegin() const {
+    return rbegin();
   }
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>
@@ -174,13 +186,25 @@ namespace chunked_list {
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>
   typename ChunkedList<T, ChunkSize, Allocator>::const_iterator
-  ChunkedList<T, ChunkSize, Allocator>::Chunk::cend() const {
+  ChunkedList<T, ChunkSize, Allocator>::Chunk::end() const {
     return const_iterator{nextChunk};
+  }
+
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  typename ChunkedList<T, ChunkSize, Allocator>::const_iterator
+  ChunkedList<T, ChunkSize, Allocator>::Chunk::cend() const {
+    return end();
   }
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>
   typename ChunkedList<T, ChunkSize, Allocator>::reverse_iterator ChunkedList<T, ChunkSize, Allocator>::Chunk::rend() {
     return reverse_iterator{begin()};
+  }
+
+  template<typename T, size_t ChunkSize, template<typename> typename Allocator>
+  typename ChunkedList<T, ChunkSize, Allocator>::const_reverse_iterator
+  ChunkedList<T, ChunkSize, Allocator>::Chunk::rend() const {
+    return const_reverse_iterator{cbegin()};
   }
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>

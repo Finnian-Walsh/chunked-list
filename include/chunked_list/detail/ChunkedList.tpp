@@ -129,16 +129,16 @@ namespace chunked_list {
   }
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>
-  template<typename IteratorType>
-    requires utility::iterator_or_chunk_iterator_const<ChunkedList<T, ChunkSize, Allocator>, IteratorType>
-  IteratorType ChunkedList<T, ChunkSize, Allocator>::begin() const {
-    return IteratorType{get_sentinel()->nextChunk};
+  template<typename ConstIteratorType>
+    requires utility::iterator_or_chunk_iterator_const<ChunkedList<T, ChunkSize, Allocator>, ConstIteratorType>
+  ConstIteratorType ChunkedList<T, ChunkSize, Allocator>::begin() const {
+    return ConstIteratorType{get_sentinel()->nextChunk};
   }
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>
-  template<typename IteratorType>
-    requires utility::iterator_or_chunk_iterator_const<ChunkedList<T, ChunkSize, Allocator>, IteratorType>
-  IteratorType ChunkedList<T, ChunkSize, Allocator>::cbegin() const {
+  template<typename ConstIteratorType>
+    requires utility::iterator_or_chunk_iterator_const<ChunkedList<T, ChunkSize, Allocator>, ConstIteratorType>
+  ConstIteratorType ChunkedList<T, ChunkSize, Allocator>::cbegin() const {
     return begin();
   }
 
@@ -150,18 +150,18 @@ namespace chunked_list {
   }
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>
-  template<typename ReverseIteratorType>
+  template<typename ConstReverseIteratorType>
     requires utility::iterator_or_chunk_iterator_const_reverse<ChunkedList<T, ChunkSize, Allocator>,
-                                                               ReverseIteratorType>
-  ReverseIteratorType ChunkedList<T, ChunkSize, Allocator>::rbegin() const {
-    return ReverseIteratorType{cend()};
+                                                               ConstReverseIteratorType>
+  ConstReverseIteratorType ChunkedList<T, ChunkSize, Allocator>::rbegin() const {
+    return ConstReverseIteratorType{cend()};
   }
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>
-  template<typename ReverseIteratorType>
+  template<typename ConstReverseIteratorType>
     requires utility::iterator_or_chunk_iterator_const_reverse<ChunkedList<T, ChunkSize, Allocator>,
-                                                               ReverseIteratorType>
-  ReverseIteratorType ChunkedList<T, ChunkSize, Allocator>::crbegin() const {
+                                                               ConstReverseIteratorType>
+  ConstReverseIteratorType ChunkedList<T, ChunkSize, Allocator>::crbegin() const {
     return rbegin();
   }
 
@@ -173,16 +173,16 @@ namespace chunked_list {
   }
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>
-  template<typename IteratorType>
-    requires utility::iterator_or_chunk_iterator_const<ChunkedList<T, ChunkSize, Allocator>, IteratorType>
-  IteratorType ChunkedList<T, ChunkSize, Allocator>::end() const {
-    return IteratorType{get_sentinel()};
+  template<typename ConstIteratorType>
+    requires utility::iterator_or_chunk_iterator_const<ChunkedList<T, ChunkSize, Allocator>, ConstIteratorType>
+  ConstIteratorType ChunkedList<T, ChunkSize, Allocator>::end() const {
+    return ConstIteratorType{get_sentinel()};
   }
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>
-  template<typename IteratorType>
-    requires utility::iterator_or_chunk_iterator_const<ChunkedList<T, ChunkSize, Allocator>, IteratorType>
-  IteratorType ChunkedList<T, ChunkSize, Allocator>::cend() const {
+  template<typename ConstIteratorType>
+    requires utility::iterator_or_chunk_iterator_const<ChunkedList<T, ChunkSize, Allocator>, ConstIteratorType>
+  ConstIteratorType ChunkedList<T, ChunkSize, Allocator>::cend() const {
     return end();
   }
 
@@ -194,18 +194,18 @@ namespace chunked_list {
   }
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>
-  template<typename ReverseIteratorType>
+  template<typename ConstReverseIteratorType>
     requires utility::iterator_or_chunk_iterator_const_reverse<ChunkedList<T, ChunkSize, Allocator>,
-                                                               ReverseIteratorType>
-  ReverseIteratorType ChunkedList<T, ChunkSize, Allocator>::rend() const {
-    return ReverseIteratorType{begin()};
+                                                               ConstReverseIteratorType>
+  ConstReverseIteratorType ChunkedList<T, ChunkSize, Allocator>::rend() const {
+    return ConstReverseIteratorType{begin()};
   }
 
   template<typename T, size_t ChunkSize, template<typename> typename Allocator>
-  template<typename ReverseIteratorType>
+  template<typename ConstReverseIteratorType>
     requires utility::iterator_or_chunk_iterator_const_reverse<ChunkedList<T, ChunkSize, Allocator>,
-                                                               ReverseIteratorType>
-  ReverseIteratorType ChunkedList<T, ChunkSize, Allocator>::crend() const {
+                                                               ConstReverseIteratorType>
+  ConstReverseIteratorType ChunkedList<T, ChunkSize, Allocator>::crend() const {
     return rend();
   }
 
@@ -477,58 +477,73 @@ namespace chunked_list {
   }
 } // namespace chunked_list
 
-template<
-  chunked_list::utility::chunked_list ChunkedListType,
-  chunked_list::utility::iterator_or_chunk_iterator<ChunkedListType> IteratorType = typename ChunkedListType::iterator>
+template<chunked_list::utility::chunked_list ChunkedListType, typename IteratorType>
+  requires chunked_list::utility::iterator_or_chunk_iterator<ChunkedListType, IteratorType>
 IteratorType begin(ChunkedListType &chunkedList) noexcept {
   return chunkedList.template begin<IteratorType>();
 }
 
-template<chunked_list::utility::chunked_list ChunkedListType,
-         chunked_list::utility::iterator_or_chunk_iterator_const<ChunkedListType> ConstIteratorType =
-           typename ChunkedListType::const_iterator>
+template<chunked_list::utility::chunked_list ChunkedListType, typename ConstIteratorType>
+  requires chunked_list::utility::iterator_or_chunk_iterator_const<ChunkedListType, ConstIteratorType>
+ConstIteratorType begin(const ChunkedListType &chunkedList) noexcept {
+  return chunkedList.template cbegin<ConstIteratorType>();
+}
+
+template<chunked_list::utility::chunked_list ChunkedListType, typename ConstIteratorType>
+  requires chunked_list::utility::iterator_or_chunk_iterator_const<ChunkedListType, ConstIteratorType>
 ConstIteratorType cbegin(const ChunkedListType &chunkedList) noexcept {
   return chunkedList.template cbegin<ConstIteratorType>();
 }
 
-template<chunked_list::utility::chunked_list ChunkedListType,
-         typename ReverseIteratorType = typename ChunkedListType::reverse_iterator>
+template<chunked_list::utility::chunked_list ChunkedListType, typename ReverseIteratorType>
   requires chunked_list::utility::iterator_or_chunk_iterator_reverse<ChunkedListType, ReverseIteratorType>
 ReverseIteratorType rbegin(ChunkedListType &chunkedList) noexcept {
   return chunkedList.template rbegin<ReverseIteratorType>();
 }
 
-template<chunked_list::utility::chunked_list ChunkedListType,
-         chunked_list::utility::iterator_or_chunk_iterator_const_reverse<ChunkedListType> ConstReverseIteratorType =
-           typename ChunkedListType::const_reverse_iterator>
+template<chunked_list::utility::chunked_list ChunkedListType, typename ConstReverseIteratorType>
+ConstReverseIteratorType rbegin(const ChunkedListType &chunkedList) noexcept {
+  return chunkedList.template rbegin<ConstReverseIteratorType>();
+}
+
+template<chunked_list::utility::chunked_list ChunkedListType, typename ConstReverseIteratorType>
+  requires chunked_list::utility::iterator_or_chunk_iterator_const_reverse<ChunkedListType, ConstReverseIteratorType>
 ConstReverseIteratorType crbegin(const ChunkedListType &chunkedList) noexcept {
   return chunkedList.template crbegin<ConstReverseIteratorType>();
 }
 
-template<
-  chunked_list::utility::chunked_list ChunkedListType,
-  chunked_list::utility::iterator_or_chunk_iterator<ChunkedListType> IteratorType = typename ChunkedListType::iterator>
+template<chunked_list::utility::chunked_list ChunkedListType, typename IteratorType>
+  requires chunked_list::utility::iterator_or_chunk_iterator<ChunkedListType, IteratorType>
 IteratorType end(ChunkedListType &chunkedList) noexcept {
   return chunkedList.template end<IteratorType>();
 }
 
-template<chunked_list::utility::chunked_list ChunkedListType,
-         chunked_list::utility::iterator_or_chunk_iterator_const<ChunkedListType> ConstIteratorType =
-           typename ChunkedListType::const_iterator>
+template<chunked_list::utility::chunked_list ChunkedListType, typename ConstIteratorType>
+  requires chunked_list::utility::iterator_or_chunk_iterator_const<ChunkedListType, ConstIteratorType>
+ConstIteratorType end(const ChunkedListType &chunkedList) noexcept {
+  return chunkedList.template end<ConstIteratorType>();
+}
+
+template<chunked_list::utility::chunked_list ChunkedListType, typename ConstIteratorType>
+  requires chunked_list::utility::iterator_or_chunk_iterator_const<ChunkedListType, ConstIteratorType>
 ConstIteratorType cend(const ChunkedListType &chunkedList) noexcept {
   return chunkedList.template cend<ConstIteratorType>();
 }
 
-template<chunked_list::utility::chunked_list ChunkedListType,
-         chunked_list::utility::iterator_or_chunk_iterator_reverse<ChunkedListType> ReverseIteratorType =
-           typename ChunkedListType::reverse_iterator>
+template<chunked_list::utility::chunked_list ChunkedListType, typename ReverseIteratorType>
+  requires chunked_list::utility::iterator_or_chunk_iterator_reverse<ChunkedListType, ReverseIteratorType>
 ReverseIteratorType rend(ChunkedListType &chunkedList) noexcept {
   return chunkedList.template rend<ReverseIteratorType>();
 }
 
-template<chunked_list::utility::chunked_list ChunkedListType,
-         chunked_list::utility::iterator_or_chunk_iterator_const_reverse<ChunkedListType> ConstReverseIteratorType =
-           typename ChunkedListType::const_reverse_iterator>
+template<chunked_list::utility::chunked_list ChunkedListType, typename ConstReverseIteratorType>
+  requires chunked_list::utility::iterator_or_chunk_iterator_const_reverse<ChunkedListType, ConstReverseIteratorType>
+ConstReverseIteratorType rend(const ChunkedListType &chunkedList) noexcept {
+  return chunkedList.template crend<ConstReverseIteratorType>();
+}
+
+template<chunked_list::utility::chunked_list ChunkedListType, typename ConstReverseIteratorType>
+  requires chunked_list::utility::iterator_or_chunk_iterator_const_reverse<ChunkedListType, ConstReverseIteratorType>
 ConstReverseIteratorType crend(const ChunkedListType &chunkedList) noexcept {
   return chunkedList.template crend<ConstReverseIteratorType>();
 }
